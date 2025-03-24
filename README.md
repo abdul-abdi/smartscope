@@ -135,13 +135,13 @@ SmartScope is in active development with the following roadmap:
 - Learning Resources
 - SmartScope AI Assistant
 
-### In Progress (Q3 2023)
+### In Progress (Q2 2025)
 - Enhanced Security Analysis with integration with security standards
 - Performance Optimization and AI-assisted code improvements
 - Community Features with code sharing and collaborative development
 
-### Future Plans (2024)
-- Cross-Chain Support (Ethereum integration Q1 2024, Polygon integration Q2 2024)
+### Future Plans (Q3 2025)
+- Cross-Chain Support (Ethereum integration Q3 2025)
 - Advanced Analytics with deeper insights into contract performance
 - Advanced AI Features with integration into workflow and personalized recommendations
 
