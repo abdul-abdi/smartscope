@@ -200,7 +200,7 @@ export default function RoadmapPage() {
             >
               <p className="text-sm text-muted-foreground">
                 <strong>Current Network Support:</strong> SmartScope currently supports the <span className="text-primary font-medium">Hedera Testnet</span> only. 
-                Our roadmap includes plans for additional networks in 2024.
+                Our roadmap includes plans for additional networks in 2025.
               </p>
             </motion.div>
           </motion.div>
