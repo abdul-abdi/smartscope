@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Button } from '../../../../components/ui/button';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
-import { Loader2, Send, BookOpen, Terminal, Code } from 'lucide-react';
+import { Loader2, Send, BookOpen, Terminal, Code, Pencil } from 'lucide-react';
 import ContractTransactionDetails from '../../../../components/ContractTransactionDetails';
 
 interface FunctionInput {
@@ -73,14 +73,14 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
 
   if (!selectedFunction) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className="rounded-full bg-primary/10 p-4 mb-4">
-            <Code className="h-10 w-10 text-primary" />
+      <Card className="h-full border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="rounded-full bg-primary/10 p-4 mb-6">
+            <Terminal className="h-10 w-10 text-primary" />
           </div>
-          <h3 className="text-xl font-medium mb-2">Select a function</h3>
+          <h3 className="text-xl font-medium mb-3 text-center">Select a Function to Interact</h3>
           <p className="text-muted-foreground text-center max-w-md">
-            Choose a function from the sidebar to interact with this smart contract
+            Choose a function from the sidebar to interact with this smart contract. Read functions will query data, while write functions will submit transactions.
           </p>
         </CardContent>
       </Card>
@@ -90,98 +90,129 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
   const isRead = isReadOnlyFunction(selectedFunction);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
+    <Card className="border-primary/20 shadow-sm">
+      <CardHeader className={`pb-3 ${isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-amber-50/50 dark:bg-amber-900/10'}`}>
+        <CardTitle className="flex items-center text-lg">
           {isRead ? (
-            <BookOpen className="mr-2 h-5 w-5 text-blue-500" />
+            <BookOpen className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
           ) : (
-            <Terminal className="mr-2 h-5 w-5 text-amber-500" />
+            <Pencil className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
           )}
           {selectedFunction.name}
+          <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
+            isRead 
+              ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300' 
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-800 dark:text-amber-300'
+          }`}>
+            {isRead ? 'Read' : 'Write'}
+          </span>
         </CardTitle>
         <CardDescription>
-          {isRead
-            ? 'Read function - returns data without modifying state' 
-            : 'Write function - modifies contract state and requires transaction'}
+          {selectedFunction.humanReadableSignature || `${selectedFunction.name}(${selectedFunction.inputs.map(i => `${i.type} ${i.name}`).join(', ')})`}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <form onSubmit={onSubmit} className="space-y-4">
           {functionInputs.length > 0 ? (
-            functionInputs.map((input, index) => (
-              <div key={index} className="space-y-2">
-                <Label htmlFor={`input-${index}`}>
-                  {input.name} <span className="text-xs text-muted-foreground ml-1">({input.type})</span>
-                </Label>
-                <Input
-                  id={`input-${index}`}
-                  value={input.value}
-                  onChange={(e) => onInputChange(input.name, e.target.value)}
-                  placeholder={`Enter ${input.type} value`}
-                />
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">This function doesn't require any inputs</p>
-          )}
-          
-          {result !== null && (
-            <div className="mt-6 border rounded-md overflow-hidden">
-              <div className={`px-4 py-2 border-b ${
-                isRead
-                  ? 'bg-blue-50 dark:bg-blue-900/20' 
-                  : 'bg-amber-50 dark:bg-amber-900/20'
-              }`}>
-                <div className="flex items-center">
-                  <h3 className="text-sm font-semibold flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    {isRead ? 'Function Result' : 'Transaction Executed'}
-                  </h3>
-                  <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-                    isRead
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-300'
-                      : 'bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-300'
-                  }`}>
-                    {selectedFunction.name}
-                  </span>
+            <div className="space-y-4">
+              {functionInputs.map((input, index) => (
+                <div key={input.name || index} className="grid gap-2">
+                  <Label className="flex items-center text-sm">
+                    {input.name || `Parameter ${index + 1}`}
+                    <span className="ml-2 text-xs text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                      {input.type}
+                    </span>
+                  </Label>
+                  <Input
+                    value={input.value}
+                    onChange={(e) => onInputChange(input.name, e.target.value)}
+                    placeholder={`Enter value for ${input.name || `parameter ${index + 1}`} (${input.type})`}
+                    className="font-mono border-input/60 bg-background/50"
+                  />
                 </div>
-              </div>
-              
-              <ContractTransactionDetails 
-                result={result}
-                functionName={selectedFunction.name}
-                isReadFunction={isRead}
-              />
+              ))}
+            </div>
+          ) : (
+            <div className="border rounded-md p-3 bg-muted/20">
+              <p className="text-sm text-center text-muted-foreground">This function doesn't require any parameters</p>
             </div>
           )}
-        
-          <div className="pt-4">
-            <Button 
-              type="submit"
-              disabled={isLoading}
-              className={
-                isRead
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-amber-600 hover:bg-amber-700'
-              }
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isRead ? 'Reading...' : 'Executing...'}
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  {isRead ? 'Call Function' : 'Execute Function'}
-                </>
-              )}
-            </Button>
-          </div>
+
+          <Button 
+            type="submit" 
+            className={`w-full ${
+              isRead 
+                ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800' 
+                : 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-800'
+            }`}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isRead ? 'Calling Function...' : 'Executing Transaction...'}
+              </>
+            ) : (
+              <>
+                {isRead ? (
+                  <>
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Call Function
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Execute Transaction
+                  </>
+                )}
+              </>
+            )}
+          </Button>
+          
+          {hasWriteFunctionSuggestion && (
+            <div className="mt-3 text-center">
+              <Button 
+                onClick={onRetryAsWriteFunction}
+                size="sm" 
+                className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-800"
+              >
+                Retry as Write Function
+              </Button>
+            </div>
+          )}
         </form>
+          
+        {result !== null && (
+          <div className="mt-6 border rounded-md overflow-hidden">
+            <div className={`px-4 py-2 border-b ${
+              isRead
+                ? 'bg-blue-50 dark:bg-blue-900/20' 
+                : 'bg-amber-50 dark:bg-amber-900/20'
+            }`}>
+              <div className="flex items-center">
+                <h3 className="text-sm font-semibold flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  {isRead ? 'Function Result' : 'Transaction Executed'}
+                </h3>
+                <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                  isRead
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-300'
+                }`}>
+                  {selectedFunction.name}
+                </span>
+              </div>
+            </div>
+            
+            <ContractTransactionDetails 
+              result={result}
+              functionName={selectedFunction.name}
+              isReadFunction={isRead}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

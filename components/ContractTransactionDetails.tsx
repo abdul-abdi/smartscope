@@ -91,19 +91,19 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
   };
   
   return (
-    <Card className="mt-4 overflow-hidden border-blue-100 dark:border-blue-900">
-      <CardHeader className="py-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+    <Card className="mt-4 overflow-hidden border-blue-100 dark:border-blue-900 shadow-sm">
+      <CardHeader className="py-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
           <CardTitle className="text-md flex items-center">
-            <Code className="mr-2 h-4 w-4" />
+            <Code className="mr-2 h-4 w-4 text-primary" />
             {isReadFunction ? 'Function Call Details' : 'Transaction Details'}
             {hasAnalysis && (
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary hover:bg-primary/20">
                 Analyzed
               </Badge>
             )}
           </CardTitle>
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </div>
         <CardDescription>
           {isReadFunction
@@ -116,15 +116,15 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
       {displayValue !== undefined && (
         <div className={`px-4 py-3 border-t border-b ${
           isReadFunction 
-            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800' 
-            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800'
+            ? 'bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800' 
+            : 'bg-amber-50/50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800'
         }`}>
           <div className="flex items-center mb-1">
             <h3 className="text-sm font-semibold">
               {isReadFunction ? 'Return Value:' : 'Transaction Result:'}
             </h3>
           </div>
-          <div className="pl-3 border-l-2 border-green-400 dark:border-green-600 bg-white/80 dark:bg-gray-900/80 p-2 rounded">
+          <div className="pl-3 border-l-2 border-green-400 dark:border-green-600 bg-white/80 dark:bg-gray-900/80 p-2 rounded shadow-sm">
             <pre className="font-mono text-sm overflow-x-auto whitespace-pre-wrap break-all">
               {formatValue(displayValue)}
             </pre>
@@ -133,17 +133,17 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
       )}
       
       {expanded && (
-        <CardContent className="pb-4">
+        <CardContent className="pb-4 pt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="request" className="text-xs">
+            <TabsList className="grid grid-cols-3 mb-4 bg-muted/50">
+              <TabsTrigger value="request" className="text-xs data-[state=active]:bg-background">
                 Request
               </TabsTrigger>
-              <TabsTrigger value="response" className="text-xs">
+              <TabsTrigger value="response" className="text-xs data-[state=active]:bg-background">
                 Response
               </TabsTrigger>
               {!isReadFunction && (
-                <TabsTrigger value="tx" className="text-xs">
+                <TabsTrigger value="tx" className="text-xs data-[state=active]:bg-background">
                   Transaction
                 </TabsTrigger>
               )}
@@ -307,12 +307,29 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
             {!isReadFunction && (
               <TabsContent value="tx" className="space-y-4">
                 {hasTransactionHash && (
-                  <div className="rounded-md border p-4 bg-slate-50 dark:bg-slate-900">
-                    <h4 className="text-sm font-medium mb-2">Transaction Information</h4>
-                    <div className="space-y-2">
+                  <div className="rounded-md border p-4 bg-slate-50/70 dark:bg-slate-900/70 shadow-sm">
+                    <h4 className="text-sm font-medium mb-2 flex items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-2"></span>
+                      Transaction Information
+                    </h4>
+                    <div className="space-y-3">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Hash:</p>
-                        <p className="font-mono text-sm break-all">{result.transactionHash || result.txId}</p>
+                        <p className="font-mono text-sm break-all bg-background/80 p-2 rounded border border-border/30">
+                          {result.transactionHash || result.txId}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full group mt-2 bg-gradient-to-r from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/20 border-primary/20"
+                          onClick={() => window.open(`https://hashscan.io/testnet/transaction/${result.transactionHash || result.txId}`, '_blank')}
+                        >
+                          View on HashScan
+                          <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        </Button>
                       </div>
                       
                       {result.txData && (

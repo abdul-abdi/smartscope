@@ -597,10 +597,18 @@ const CreateContractPage = () => {
                     </div>
                     <Button
                       onClick={handleInteract}
-                      className="w-full group"
+                      className="w-full group mb-2"
                     >
                       Interact with Contract
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(`https://hashscan.io/testnet/contract/${contractAddress}`, '_blank')}
+                      className="w-full group"
+                    >
+                      View on HashScan
+                      <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </motion.div>
                 )}

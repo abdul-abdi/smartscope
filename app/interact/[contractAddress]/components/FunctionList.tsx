@@ -98,50 +98,46 @@ const FunctionList: React.FC<FunctionListProps> = ({
             ? isRead 
               ? 'bg-blue-100 border-blue-300 dark:bg-blue-900 dark:border-blue-700'
               : 'bg-amber-100 border-amber-300 dark:bg-amber-900 dark:border-amber-700'
-            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+            : 'hover:bg-muted/50 border-border'
         }`}
         onClick={() => onFunctionSelect(func)}
       >
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <div className="font-medium flex items-center">
-              {isRead ? (
-                <BookOpen className="h-4 w-4 mr-1 text-blue-600 dark:text-blue-400" />
-              ) : (
-                <Pencil className="h-4 w-4 mr-1 text-amber-600 dark:text-amber-400" />
-              )}
-              {func.name}
-              {func.verified && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <CheckCircle className="h-4 w-4 ml-1 text-green-600 dark:text-green-400" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Verified on-chain</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-            {func.humanReadableSignature && (
-              <div className="text-xs font-mono text-gray-500 dark:text-gray-400 mt-1">
-                {func.humanReadableSignature}
-              </div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-medium text-sm">
+            {func.name}
+          </span>
+          <div className="flex items-center space-x-1">
+            {func.verified && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1 py-0 h-4 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                      <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
+                      verified
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Function verified on-chain</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
-          </div>
-          <div>
-            <Badge
-              variant={isRead ? "secondary" : "default"}
+            <Badge 
+              variant="outline" 
               className={isRead 
-                ? "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700"
-                : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-200 dark:border-amber-700"
+                ? "bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0 h-4 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                : "bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1 py-0 h-4 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
               }
             >
-              {isRead ? 'Read-only' : func.stateMutability === 'payable' ? 'Payable' : 'State-changing'}
+              {isRead ? 'read' : 'write'}
             </Badge>
           </div>
         </div>
+        {func.humanReadableSignature && (
+          <div className="font-mono text-xs text-muted-foreground truncate">
+            {func.humanReadableSignature}
+          </div>
+        )}
       </div>
     );
   };

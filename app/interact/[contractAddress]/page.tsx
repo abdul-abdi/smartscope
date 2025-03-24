@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Loader2, Code } from 'lucide-react';
+import { Loader2, Code, BookOpen } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Button } from '../../../components/ui/button';
 import ContractHeader from './components/ContractHeader';
@@ -13,6 +13,8 @@ import FunctionForm from './components/FunctionForm';
 import BytecodeInput from './components/BytecodeInput';
 import ContractAnalysisCard from './components/ContractAnalysisCard';
 import { analyzeContract } from '../../utils/api';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
 
 interface FunctionInput {
   name: string;
@@ -522,181 +524,386 @@ const InteractPage = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
+      className="container pb-12 space-y-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="container mx-auto px-4 py-6 max-w-7xl"
     >
-      <ContractHeader contractAddress={contractAddress} />
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm pt-4 pb-2">
+        <ContractHeader contractAddress={contractAddress} />
+        <ContractInfo
+          contractAddress={contractAddress}
+          abiSource={abiSource}
+          functionsCount={functions.length}
+        />
+      </div>
 
-      {/* Warning about limitations */}
-      <Alert className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
-        <AlertDescription className="flex items-start">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <div>
-            <strong>Limited Functionality:</strong> Contract interaction on Hedera Testnet is provided as-is and may not work as expected for all contracts.
-            <ul className="mt-1 list-disc pl-5 text-sm">
+      {/* Limited Functionality Warning */}
+      <Alert className="bg-blue-50/50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
+        <div className="flex items-start gap-2">
+          <div className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <AlertDescription className="flex-1">
+            <p className="font-medium mb-1">Limited Functionality:</p> 
+            <p className="mb-1">Contract interaction on Hedera Testnet is provided as-is and may not work as expected for all contracts.</p>
+            <ul className="list-disc pl-5 text-sm space-y-1">
               <li>Some contracts may require specific permissions or parameters</li>
               <li>Complex contracts might have partial functionality</li>
               <li>Function detection relies on bytecode analysis which has limitations</li>
             </ul>
-          </div>
-        </AlertDescription>
+          </AlertDescription>
+        </div>
       </Alert>
 
+      {/* Verification Status Message */}
       {statusMessage && (
-        <Alert 
-          className={`mb-6 ${
-            statusMessage.type === 'success' 
-              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
-              : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
-          }`}
-        >
-          <AlertDescription className={`whitespace-pre-line ${
-            statusMessage.type === 'success' 
-              ? 'text-green-700 dark:text-green-300' 
-              : 'text-yellow-700 dark:text-yellow-300'
-          }`}>
-            {statusMessage.message}
-            
-            {hasWriteFunctionSuggestion && (
-              <div className="mt-3">
-                <Button 
-                  onClick={handleRetryAsWriteFunction}
-                  size="sm" 
-                  className="bg-amber-600 hover:bg-amber-700"
-                >
-                  Retry as Write Function
-                </Button>
-                </div>
+        <Alert className={`mb-4 ${
+          statusMessage.type === 'success' 
+            ? 'bg-green-50/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+            : 'bg-amber-50/50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800'
+        }`}>
+          <div className="flex items-start gap-2">
+            {statusMessage.type === 'success' ? (
+              <div className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            ) : (
+              <div className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
             )}
-          </AlertDescription>
+            <AlertDescription className="flex-1 whitespace-pre-line">
+              {statusMessage.message}
+              
+              {hasWriteFunctionSuggestion && (
+                <div className="mt-3">
+                  <Button 
+                    onClick={handleRetryAsWriteFunction}
+                    size="sm" 
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    Retry as Write Function
+                  </Button>
+                </div>
+              )}
+            </AlertDescription>
+          </div>
         </Alert>
       )}
 
-      <ContractInfo 
-        contractAddress={contractAddress}
-        abiSource={abiSource}
-        functionsCount={functions.length}
-      />
-
-      {abiSource === 'transaction' && (
-        <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 mb-6">
-            <AlertDescription className="flex items-start">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+      {/* ABI Source Warning */}
+      {abiSource === 'bytecode' && (
+        <Alert className="mb-4 bg-amber-50/50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+          <div className="flex items-start gap-2">
+            <div className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <div>
-                <strong>Limited ABI from transaction history.</strong> The current ABI was generated from transaction history, which may be incomplete. 
-                <div className="mt-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-xs py-1 h-auto"
-                    onClick={() => setShowBytecodeInput(true)}
-                  >
-                    Provide Bytecode Manually
-                  </Button>
-                </div>
-              </div>
+            </div>
+            <AlertDescription className="flex-1">
+              <p className="font-medium mb-1">Warning: ABI generated from bytecode analysis</p>
+              <p className="mb-2 text-sm">Contract ABI was generated from bytecode analysis which may be incomplete. Some functions might be missing or incorrectly decoded.</p>
             </AlertDescription>
-          </Alert>
+          </div>
+        </Alert>
+      )}
+
+      {/* Transaction-based ABI Warning */}
+      {abiSource === 'transaction' && (
+        <Alert className="mb-4 bg-amber-50/50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+          <div className="flex items-start gap-2">
+            <div className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <AlertDescription className="flex-1">
+              <p className="font-medium mb-1">Limited ABI from transaction history</p>
+              <p className="mb-2 text-sm">The current ABI was generated from transaction history, which may be incomplete.</p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-xs py-1 h-auto"
+                onClick={() => setShowBytecodeInput(true)}
+              >
+                Provide Bytecode Manually
+              </Button>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
+      {(!abi || abi.length === 0) && !isLoadingAbi && !showBytecodeInput && (
+        <Alert className="mb-6 border-amber-200 bg-amber-50/50 dark:bg-amber-900/20 dark:border-amber-800">
+          <AlertDescription className="flex flex-col space-y-4">
+            <div>
+              <p className="font-medium mb-2">Contract ABI not found</p>
+              <p className="text-sm text-muted-foreground">To interact with this contract, we need its ABI (Application Binary Interface).</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                size="sm"
+                onClick={() => setShowBytecodeInput(true)}
+                className="inline-flex items-center"
+              >
+                <Code className="mr-2 h-4 w-4" />
+                Provide Bytecode Manually
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {error && (
         <Alert className={`mb-6 ${
           error.includes("Warning:") 
-            ? "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800" 
-            : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
+            ? "bg-amber-50/50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800" 
+            : "bg-red-50/50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
         }`}>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       
       {showBytecodeInput && (
-        <BytecodeInput
-          manualBytecode={manualBytecode}
-          setManualBytecode={setManualBytecode}
-          onSubmit={handleManualBytecodeSubmit}
-          onCancel={() => setShowBytecodeInput(false)}
-          bytecodePending={bytecodePending}
-        />
+        <div className="mb-6 rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm p-4 shadow-sm">
+          <BytecodeInput
+            manualBytecode={manualBytecode}
+            setManualBytecode={setManualBytecode}
+            onSubmit={handleManualBytecodeSubmit}
+            onCancel={() => setShowBytecodeInput(false)}
+            bytecodePending={bytecodePending}
+          />
+        </div>
       )}
 
-      {!showBytecodeInput && !isLoadingAbi && (
+      {!showBytecodeInput && !isLoadingAbi && abi.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button 
             variant="outline" 
             onClick={() => setShowBytecodeInput(true)}
-          className="text-sm mb-6"
+            className="text-sm"
+            size="sm"
           >
             <Code className="mr-2 h-4 w-4" />
-            Provide Bytecode Manually
+            Update Bytecode
           </Button>
+          
+          <Button
+            variant="outline"
+            onClick={handleAnalyzeContract}
+            className="text-sm"
+            size="sm"
+            disabled={isAnalyzing || !abi || abi.length === 0}
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <BookOpen className="mr-2 h-4 w-4" />
+                Analyze Contract
+              </>
+            )}
+          </Button>
+        </div>
       )}
 
       {isLoadingAbi ? (
-        <div className="flex flex-col items-center py-12">
+        <div className="flex flex-col items-center py-12 rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
           <p className="text-center text-muted-foreground">
             Discovering contract functions...
           </p>
         </div>
-      ) : functions.length === 0 ? (
-        <Alert className="mb-6">
-            <AlertDescription>
-              No functions were discovered for this contract. This could be because:
-              <ul className="list-disc pl-6 mt-2">
-                <li>The contract doesn't expose any standard functions</li>
-                <li>The contract address is invalid</li>
-                <li>The contract has a custom interface not recognized by our system</li>
-              </ul>
-              <p className="mt-2">
-                Try providing a custom ABI by appending ?abi=&#123;...&#125; to the URL.
-              </p>
-            </AlertDescription>
-          </Alert>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <div className="mb-3 text-sm text-muted-foreground italic">
-              <p>Some contract functions may not behave as expected due to permission restrictions or complex parameters.</p>
+      ) : functions.length === 0 && abi.length > 0 ? (
+        <Alert className="mb-6 bg-red-50/50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+          <AlertDescription>
+            <p className="font-medium mb-2">No functions were discovered for this contract</p>
+            <p className="text-sm mb-2">This could be because:</p>
+            <ul className="list-disc pl-6 mb-2 text-sm space-y-1">
+              <li>The contract doesn't expose any standard functions</li>
+              <li>The contract address is invalid</li>
+              <li>The contract has a custom interface not recognized by our system</li>
+            </ul>
+            <p className="text-sm">
+              Try providing a custom ABI by appending ?abi=&#123;...&#125; to the URL.
+            </p>
+          </AlertDescription>
+        </Alert>
+      ) : functions.length > 0 ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <div className="p-4 mb-3 text-sm text-muted-foreground rounded-lg border border-border/40 bg-background/50 backdrop-blur-sm">
+                <p className="flex items-center gap-2 mb-2 font-medium text-foreground">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  Contract Functions
+                </p>
+                <p>Select a function from the list to interact with this contract. Read functions fetch data, while write functions modify the blockchain state.</p>
+              </div>
+              
+              {/* Verification Status Banner */}
+              {functions.some(f => f.verified) && (
+                <div className="mb-3 px-3 py-2 rounded-md text-sm text-green-800 bg-green-50/80 border border-green-200 dark:text-green-300 dark:bg-green-900/20 dark:border-green-800">
+                  {functions.filter(f => f.verified).length} of {functions.length} functions verified on-chain.
+                </div>
+              )}
+              
+              <FunctionList
+                functions={functions}
+                selectedFunction={selectedFunction}
+                onFunctionSelect={handleFunctionSelect}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
             </div>
-            <FunctionList
-              functions={functions}
-              selectedFunction={selectedFunction}
-              onFunctionSelect={handleFunctionSelect}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-          </div>
 
-          <div className="lg:col-span-2">
-            <FunctionForm
-              selectedFunction={selectedFunction}
-              functionInputs={functionInputs}
-              onInputChange={handleInputChange}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              result={result}
-              hasWriteFunctionSuggestion={hasWriteFunctionSuggestion}
-              onRetryAsWriteFunction={handleRetryAsWriteFunction}
-            />
+            <div className="lg:col-span-2">
+              <FunctionForm
+                selectedFunction={selectedFunction}
+                functionInputs={functionInputs}
+                onInputChange={handleInputChange}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                result={result}
+                hasWriteFunctionSuggestion={hasWriteFunctionSuggestion}
+                onRetryAsWriteFunction={handleRetryAsWriteFunction}
+              />
+            </div>
           </div>
+          
+          {contractAnalysis && (
+            <div className="pt-6 mt-6 border-t border-border/30">
+              <Card className="bg-gradient-to-br from-background/90 to-background/60 border-primary/10 shadow-md backdrop-blur-sm overflow-hidden">
+                <CardHeader className="pb-3 border-b border-border/20">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center">
+                      <div className="bg-primary/10 p-1.5 rounded-full mr-3">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                      </div>
+                      Contract Analysis
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 px-2 py-0.5">
+                      AI-Powered
+                    </Badge>
+                  </div>
+                  <CardDescription className="mt-1">
+                    Automated analysis of contract purpose, functionality, and security considerations
+                  </CardDescription>
+                </CardHeader>
+                
+                <CardContent className="p-0">
+                  <div className="prose dark:prose-invert prose-sm max-w-none p-6 overflow-x-auto">
+                    {/* Contract basic info section - displayed in a structured format */}
+                    {contractAnalysis.includes("Contract Analysis for") && (
+                      <div className="mb-6 bg-muted/30 rounded-lg border border-border/30 p-4">
+                        <h3 className="text-base font-semibold mb-3 flex items-center">
+                          <span className="inline-block w-2 h-2 bg-primary rounded-full mr-2"></span>
+                          Contract Overview
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                          {contractAnalysis.split('\n').map((line, idx) => {
+                            if (line.includes(':') && !line.includes('Contract Analysis for') && 
+                                !line.includes('Note:') && !line.includes('-----')) {
+                              const [key, value] = line.split(':').map(part => part.trim());
+                              return (
+                                <div key={idx} className="flex flex-col">
+                                  <span className="text-xs text-muted-foreground font-medium">{key}</span>
+                                  <span className="font-mono text-sm break-all">{value}</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Properly render markdown content */}
+                    {contractAnalysis.split('\n').map((line, idx) => {
+                      // Main section headers (## headings)
+                      if (line.startsWith('## ')) {
+                        return (
+                          <h3 key={idx} className="text-lg font-bold mt-6 mb-3 pb-1 border-b border-border/30 text-primary/90">
+                            {line.replace('## ', '')}
+                          </h3>
+                        );
+                      }
+                      
+                      // Secondary headings (# headings)
+                      if (line.startsWith('# ')) {
+                        return (
+                          <h2 key={idx} className="text-xl font-bold mt-5 mb-3">
+                            {line.replace('# ', '')}
+                          </h2>
+                        );
+                      }
+                      
+                      // Separator lines
+                      if (line.startsWith('----')) {
+                        return <hr key={idx} className="my-4 border-border/30" />;
+                      }
+                      
+                      // Function counts and stats
+                      if (line.includes('functions') && (line.includes('read') || line.includes('write') || line.includes('events'))) {
+                        return (
+                          <div key={idx} className="my-3 p-3 bg-muted/20 rounded-lg border border-border/30">
+                            <p className="font-medium">{line}</p>
+                          </div>
+                        );
+                      }
+                      
+                      // Notes and warnings
+                      if (line.includes('Note:')) {
+                        return (
+                          <div key={idx} className="my-4 p-3 bg-amber-50/50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <p className="text-sm">
+                              <span className="font-semibold">Note:</span> {line.split('Note:')[1].trim()}
+                            </p>
+                          </div>
+                        );
+                      }
+                      
+                      // Skip already processed overview lines and empty lines
+                      if ((line.includes(':') && !line.includes('Contract Interface Analysis')) || 
+                          line.trim() === '' || line.includes('Contract Analysis for') || 
+                          line.startsWith('-----')) {
+                        return null;
+                      }
+                      
+                      // Regular paragraph
+                      return (
+                        <p key={idx} className="my-2 text-sm leading-relaxed">
+                          {line}
+                        </p>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="bg-muted/20 px-6 py-4 border-t border-border/20">
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Note:</span> This analysis is generated by AI and should be treated as informational. 
+                      Always conduct thorough validation and testing before interacting with smart contracts in production environments.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Contract Analysis Card */}
-      <ContractAnalysisCard
-        analysis={contractAnalysis}
-        isAnalyzing={isAnalyzing}
-        onAnalyze={handleAnalyzeContract}
-        isAbiAvailable={abi && abi.length > 0}
-      />
+      ) : null}
     </motion.div>
   );
 };
