@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, Code } from 'lucide-react';
@@ -11,6 +11,8 @@ import ContractInfo from './components/ContractInfo';
 import FunctionList from './components/FunctionList';
 import FunctionForm from './components/FunctionForm';
 import BytecodeInput from './components/BytecodeInput';
+import ContractAnalysisCard from './components/ContractAnalysisCard';
+import { analyzeContract } from '../../utils/api';
 
 interface FunctionInput {
   name: string;
@@ -64,6 +66,8 @@ const InteractPage = () => {
   const [isVerified, setIsVerified] = useState<boolean>(false);
   const [hasWriteFunctionSuggestion, setHasWriteFunctionSuggestion] = useState<boolean>(false);
   const [lastAttemptedParams, setLastAttemptedParams] = useState<string[]>([]);
+  const [contractAnalysis, setContractAnalysis] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
 
   const handleManualBytecodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -501,6 +505,22 @@ const InteractPage = () => {
     }
   };
 
+  // Add a function to handle contract analysis
+  const handleAnalyzeContract = async () => {
+    if (!contractAddress || !abi || abi.length === 0) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const result = await analyzeContract(abi, contractAddress);
+      setContractAnalysis(result.analysis);
+    } catch (err: any) {
+      console.error('Error analyzing contract:', err);
+      setError(err.message || 'Failed to analyze contract');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <motion.div 
       variants={containerVariants}
@@ -509,6 +529,23 @@ const InteractPage = () => {
       className="container mx-auto px-4 py-6 max-w-7xl"
     >
       <ContractHeader contractAddress={contractAddress} />
+
+      {/* Warning about limitations */}
+      <Alert className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
+        <AlertDescription className="flex items-start">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <strong>Limited Functionality:</strong> Contract interaction on Hedera Testnet is provided as-is and may not work as expected for all contracts.
+            <ul className="mt-1 list-disc pl-5 text-sm">
+              <li>Some contracts may require specific permissions or parameters</li>
+              <li>Complex contracts might have partial functionality</li>
+              <li>Function detection relies on bytecode analysis which has limitations</li>
+            </ul>
+          </div>
+        </AlertDescription>
+      </Alert>
 
       {statusMessage && (
         <Alert 
@@ -623,15 +660,20 @@ const InteractPage = () => {
           </Alert>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <FunctionList
-            functions={functions}
-            selectedFunction={selectedFunction}
-            onFunctionSelect={handleFunctionSelect}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+          <div className="lg:col-span-1">
+            <div className="mb-3 text-sm text-muted-foreground italic">
+              <p>Some contract functions may not behave as expected due to permission restrictions or complex parameters.</p>
+            </div>
+            <FunctionList
+              functions={functions}
+              selectedFunction={selectedFunction}
+              onFunctionSelect={handleFunctionSelect}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </div>
 
           <div className="lg:col-span-2">
             <FunctionForm
@@ -647,6 +689,14 @@ const InteractPage = () => {
           </div>
         </div>
       )}
+
+      {/* Contract Analysis Card */}
+      <ContractAnalysisCard
+        analysis={contractAnalysis}
+        isAnalyzing={isAnalyzing}
+        onAnalyze={handleAnalyzeContract}
+        isAbiAvailable={abi && abi.length > 0}
+      />
     </motion.div>
   );
 };

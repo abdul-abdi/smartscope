@@ -5,15 +5,18 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { Progress } from '../../components/ui/progress';
+import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { AlertCircle, Check, Code, Loader2, ArrowRight, FileCode, Shield, Copy, ExternalLink, Clipboard, CheckCircle, Info } from 'lucide-react';
+import { AlertCircle, Check, Code, Loader2, ArrowRight, FileCode, Shield, Copy, ExternalLink, Clipboard, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
 import { compileContract, deployContract } from '../utils/api';
 import { sampleContracts, getDefaultSampleContract } from '../data/sample-contracts';
 import { useRouter } from 'next/navigation';
-import { Progress } from '../../components/ui/progress';
 
 const CreateContractPage = () => {
   const router = useRouter();
@@ -524,6 +527,36 @@ const CreateContractPage = () => {
                     <Loader2 className="h-5 w-5 text-primary animate-spin" />
                   )}
                 </div>
+                
+                {/* Security Analysis Display */}
+                {compilationResult?.warnings && compilationResult.warnings.length > 0 && (
+                  <motion.div 
+                    className="border-b border-border/30 pb-4 mb-4"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-foreground/80 mb-2 flex items-center">
+                        <Shield className="h-4 w-4 mr-1 text-amber-500" />
+                        Security Analysis
+                      </h3>
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800 dark:text-amber-400">
+                        {compilationResult.warnings.length} {compilationResult.warnings.length === 1 ? 'warning' : 'warnings'}
+                      </Badge>
+                    </div>
+                    <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 overflow-y-auto max-h-48">
+                      <ul className="space-y-2 pl-1">
+                        {compilationResult.warnings.map((warning, index) => (
+                          <li key={index} className="text-sm flex items-start">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mr-2 flex-shrink-0 mt-0.5" />
+                            <span>{warning}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </motion.div>
+                )}
                 
                 <div className="flex items-center justify-between border-b border-border/30 pb-4">
                   <div>
