@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Base background with responsive color -->
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .logo-bg { fill: #222235; }
+      .primary-color { fill: #7c3aed; }
+      .secondary-color { fill: #3b82f6; }
+      .accent-color { stroke: #7c3aed; }
+      .text-color { fill: #ffffff; }
+      .glow { opacity: 0.3; }
+    }
+    @media (prefers-color-scheme: light) {
+      .logo-bg { fill: #f8fafc; }
+      .primary-color { fill: #7c3aed; }
+      .secondary-color { fill: #3b82f6; }
+      .accent-color { stroke: #7c3aed; }
+      .text-color { fill: #1e293b; }
+      .glow { opacity: 0.2; }
+    }
+  </style>
+  
+  <!-- Base shape with rounded corners -->
+  <rect class="logo-bg" width="200" height="200" rx="30" />
+  
+  <!-- Purple outer ring -->
+  <circle cx="100" cy="100" r="70" fill="none" class="accent-color" stroke-width="6" />
+  
+  <!-- Code bracket left -->
+  <path d="M75 60 L40 100 L75 140" fill="none" class="accent-color" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Code bracket right -->
+  <path d="M125 60 L160 100 L125 140" fill="none" class="accent-color" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Inner circle representing scope -->
+  <circle cx="100" cy="100" r="35" class="secondary-color" />
+  
+  <!-- Scan lines effect for scope -->
+  <path d="M75 95 L125 95" stroke="#ffffff" stroke-width="1.5" opacity="0.4" />
+  <path d="M75 100 L125 100" stroke="#ffffff" stroke-width="1.5" opacity="0.6" />
+  <path d="M75 105 L125 105" stroke="#ffffff" stroke-width="1.5" opacity="0.4" />
+  
+  <!-- Glow effect for visual appeal -->
+  <circle cx="100" cy="100" r="50" fill="url(#gradient)" class="glow" />
+  
+  <!-- Center focal point dot -->
+  <circle cx="100" cy="100" r="12" class="primary-color" />
+  <circle cx="100" cy="100" r="8" fill="#ffffff" opacity="0.3" />
+  
+  <!-- Text "SmartScope" below the logo -->
+  <text x="100" y="180" font-family="'Arial', sans-serif" font-size="20" font-weight="700" text-anchor="middle" class="text-color">SmartScope</text>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <radialGradient id="gradient" cx="100" cy="100" r="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" class="primary-color" />
+      <stop offset="100%" class="secondary-color" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg> 

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <!-- Base background with responsive color -->
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .logo-bg { fill: #222235; }
+      .primary-color { fill: #7c3aed; }
+      .secondary-color { fill: #3b82f6; }
+      .accent-color { stroke: #7c3aed; }
+      .glow { opacity: 0.3; }
+    }
+    @media (prefers-color-scheme: light) {
+      .logo-bg { fill: #f8fafc; }
+      .primary-color { fill: #7c3aed; }
+      .secondary-color { fill: #3b82f6; }
+      .accent-color { stroke: #7c3aed; }
+      .glow { opacity: 0.2; }
+    }
+  </style>
+  
+  <!-- Base shape -->
+  <rect class="logo-bg" width="40" height="40" rx="10" />
+  
+  <!-- Purple outer ring -->
+  <circle cx="20" cy="20" r="14" fill="none" class="accent-color" stroke-width="2.5" />
+  
+  <!-- Code bracket left -->
+  <path d="M15 12 L9 20 L15 28" fill="none" class="accent-color" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Code bracket right -->
+  <path d="M25 12 L31 20 L25 28" fill="none" class="accent-color" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Inner circle representing scope -->
+  <circle cx="20" cy="20" r="7" class="secondary-color" />
+  
+  <!-- Scan lines effect -->
+  <line x1="15" y1="19" x2="25" y2="19" stroke="#ffffff" stroke-width="0.7" opacity="0.4" />
+  <line x1="15" y1="20" x2="25" y2="20" stroke="#ffffff" stroke-width="0.7" opacity="0.6" />
+  <line x1="15" y1="21" x2="25" y2="21" stroke="#ffffff" stroke-width="0.7" opacity="0.4" />
+  
+  <!-- Glow effect for visual appeal -->
+  <circle cx="20" cy="20" r="10" fill="url(#gradient)" class="glow" />
+  
+  <!-- Center dot -->
+  <circle cx="20" cy="20" r="3" class="primary-color" />
+  <circle cx="20" cy="20" r="1.5" fill="#ffffff" opacity="0.4" />
+  
+  <!-- Gradient definition -->
+  <defs>
+    <radialGradient id="gradient" cx="20" cy="20" r="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" class="primary-color" />
+      <stop offset="100%" class="secondary-color" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+</svg> 
