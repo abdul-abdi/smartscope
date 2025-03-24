@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Github } from 'lucide-react';
 
 const Footer = () => {
@@ -10,9 +11,11 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center gap-2">
-            <img 
-              src="/images/logo-icon.svg" 
+            <Image 
+              src="/favicon.svg" 
               alt="SmartScope" 
+              width={24}
+              height={24}
               className="h-6 w-6" 
             />
             <p className="text-sm text-muted-foreground">

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, Code, FileText, ExternalLink, Clock, Shield, Zap, ChevronDown } from 'lucide-react';
+import { ArrowRight, Code, FileText, ExternalLink, Clock, Shield, Zap, ChevronDown, Bot, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 // Sample code animation text
@@ -137,6 +137,7 @@ export default function Home() {
               <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-500 text-sm font-medium">Zero Setup</span>
               <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-sm font-medium">Hedera Testnet</span>
               <span className="px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-sm font-medium">Real-time Testing</span>
+              <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-sm font-medium">AI Assistant</span>
             </motion.div>
             
             <motion.div

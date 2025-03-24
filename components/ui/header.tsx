@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Menu, X, Github, Code, Cpu, BookOpen } from 'lucide-react';
+import { Menu, X, Github, Code, Cpu, BookOpen, Map } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { ThemeSwitcher } from '../providers/theme-provider';
 
@@ -12,6 +13,7 @@ const navItems = [
   { name: 'Create', path: '/create' },
   { name: 'Interact', path: '/interact' },
   { name: 'Learn', path: '/learn' },
+  { name: 'Roadmap', path: '/roadmap' },
 ];
 
 export default function Header() {
@@ -130,12 +132,12 @@ export default function Header() {
           >
             <Link href="/" className="flex items-center gap-3">
               <div className="relative flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden">
-                <img 
-                  src="/images/logo-icon.svg" 
+                <Image 
+                  src="/favicon.svg" 
                   alt="SmartScope Logo" 
-                  className="w-full h-full" 
                   width={36} 
-                  height={36} 
+                  height={36}
+                  className="w-full h-full" 
                 />
               </div>
               <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
