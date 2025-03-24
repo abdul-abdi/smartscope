@@ -188,7 +188,7 @@ export default function Header() {
             <ThemeSwitcher />
             
             <motion.a
-              href="https://github.com/yourusername/smartscope"
+              href="https://github.com/abdul-abdi/smartscope"
               target="_blank"
               rel="noopener noreferrer"
               className="text-foreground/80 hover:text-primary"
