@@ -1,21 +1,22 @@
 # SmartScope
 
 <div align="center">
-  <img src="public/images/logo.svg" alt="SmartScope Logo" width="200" height="auto" />
-  <p><strong>A comprehensive toolkit for Hedera smart contract development</strong></p>
+  <img src="public/favicon.svg" alt="SmartScope Logo" width="150" height="auto" />
+  <p><strong>Smart Contract Analyzer for Hedera Testnet</strong></p>
 </div>
 
 ## 📋 Overview
 
-SmartScope is an all-in-one platform for blockchain developers to build, analyze, deploy, and interact with smart contracts on the Hedera network. Our platform streamlines the development process from initial coding to production deployment, with a focus on security, usability, and efficiency.
+SmartScope is an all-in-one platform for blockchain developers to build, analyze, deploy, and interact with smart contracts on the Hedera Testnet. Our platform streamlines the development process with zero setup required - no wallet configuration needed. SmartScope combines powerful development tools with an integrated AI assistant to guide you through the blockchain development journey.
 
 ### Key Features
 
-- 🔍 **Smart Contract Analysis** - Instantly analyze Solidity code for insights and security vulnerabilities
+- 🔍 **Smart Contract Analysis** - Instantly analyze Solidity code for insights and security considerations
 - 🚀 **One-Click Deployment** - Deploy to Hedera Testnet without wallet configuration or manual gas settings
-- 🔒 **Security-First Approach** - Automated security checks and optimization suggestions
+- 🔒 **Security-First Approach** - Automated security checks and best practice suggestions
 - ⚡ **Real-time Interaction** - Call functions and view transaction results instantly
-- 📚 **Sample Templates** - Pre-built contract templates for common use cases
+- 📚 **Learning Resources** - Comprehensive guides on smart contract development
+- 🧠 **AI Assistant** - Get instant answers about blockchain concepts, Solidity, and Hedera
 - 🔌 **No External Dependencies** - Everything runs in-browser with no wallet requirements
 
 ## 🚀 Getting Started
@@ -23,13 +24,13 @@ SmartScope is an all-in-one platform for blockchain developers to build, analyze
 ### Prerequisites
 
 - Node.js 18+ and npm/yarn
-- A Hedera testnet account for deployment functionality (optional)
+- A Gemini API key for the AI Assistant functionality (optional)
 
 ### Installation
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/smartscope.git
+   git clone https://github.com/abdul-abdi/smartscope.git
    cd smartscope
    ```
 
@@ -47,14 +48,12 @@ SmartScope is an all-in-one platform for blockchain developers to build, analyze
    
    Edit the `.env.local` file with your credentials:
    ```
-   # Hedera Account (optional for deployments)
-   HEDERA_OPERATOR_ID=0.0.YOUR_OPERATOR_ID
-   HEDERA_OPERATOR_KEY=YOUR_OPERATOR_PRIVATE_KEY
+   # AI Assistant (optional)
+   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
    
    # API endpoints
    HASHIO_API_ENDPOINT=https://testnet.hashio.io/api
    MIRROR_NODE_TESTNET=https://testnet.mirrornode.hedera.com/api/v1
-   MIRROR_NODE_MAINNET=https://mainnet-public.mirrornode.hedera.com/api/v1
    ```
 
 4. Start the development server
@@ -103,22 +102,59 @@ SmartScope provides an end-to-end workflow for smart contract development:
 3. For read functions, results will display immediately
 4. For write functions, transaction details will be shown
 
+### Using the AI Assistant
+
+1. Click the AI Assistant chat button in the bottom-right corner
+2. Ask questions about blockchain concepts, Solidity, or how to use SmartScope
+3. Get instant, contextual help while you develop
+
 ## 🛠️ Project Structure
 
 ```
 smartscope/
 ├── app/                  # Next.js app directory
 │   ├── api/              # API routes for contract interactions
-│   ├── components/       # Shared React components
 │   ├── create/           # Contract creation pages
-│   ├── deploy/           # Deployment pages
 │   ├── interact/         # Contract interaction pages
 │   ├── learn/            # Educational content
-│   └── utils/            # Helper functions
+│   └── roadmap/          # Platform roadmap
 ├── components/           # Global components
+│   ├── providers/        # Context providers
+│   └── ui/               # UI components including AI Assistant
 ├── public/               # Static assets
-└── scripts/              # Utility scripts
+└── lib/                  # Utility functions
 ```
+
+## 🗺️ Roadmap
+
+SmartScope is in active development with the following roadmap:
+
+### Current Features
+- Smart Contract Creation and Analysis
+- Hedera Testnet Support
+- Learning Resources
+- SmartScope AI Assistant
+
+### In Progress (Q3 2023)
+- Enhanced Security Analysis with integration with security standards
+- Performance Optimization and AI-assisted code improvements
+- Community Features with code sharing and collaborative development
+
+### Future Plans (2024)
+- Cross-Chain Support (Ethereum integration Q1 2024, Polygon integration Q2 2024)
+- Advanced Analytics with deeper insights into contract performance
+- Advanced AI Features with integration into workflow and personalized recommendations
+
+## 🧠 AI Assistant Setup
+
+The SmartScope AI Assistant requires a Gemini API key to function:
+
+1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Add it to your `.env.local` file:
+   ```
+   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+3. Restart your development server
 
 ## 🤝 Contributing
 
@@ -136,16 +172,6 @@ We welcome contributions to SmartScope! Here's how you can help:
 - Add appropriate comments for complex logic
 - Write tests for new features
 - Update documentation for changes
-
-## 🧪 Testing
-
-Run tests with:
-
-```bash
-npm test
-# or
-yarn test
-```
 
 ## 📦 Building for Production
 
@@ -165,7 +191,9 @@ yarn start
 
 ## 🚢 Deployment
 
-For deploying to Vercel, follow the instructions in [DEPLOYMENT.md](DEPLOYMENT.md)
+The application is set up for easy deployment on Vercel:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fabdul-abdi%2Fsmartscope)
 
 ## 📄 License
 
@@ -176,10 +204,13 @@ This project is licensed under the [ISC License](LICENSE)
 - [Hedera Documentation](https://docs.hedera.com/)
 - [Solidity Documentation](https://docs.soliditylang.org/)
 - [Next.js Documentation](https://nextjs.org/docs)
+- [Gemini API Documentation](https://ai.google.dev/docs)
 
 ## 🙏 Acknowledgements
 
 - [Hedera](https://hedera.com/) for their blockchain technology
 - [OpenZeppelin](https://openzeppelin.com/) for secure contract templates
 - [ethers.js](https://docs.ethers.io/) for Ethereum interactions
-- [shadcn/ui](https://ui.shadcn.com/) for UI components 
+- [shadcn/ui](https://ui.shadcn.com/) for UI components
+- [Framer Motion](https://www.framer.com/motion/) for animations
+- [Google Gemini](https://gemini.google.com/) for AI assistance 
