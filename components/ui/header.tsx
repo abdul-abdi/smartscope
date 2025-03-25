@@ -12,6 +12,7 @@ const navItems = [
   { name: 'Home', path: '/' },
   { name: 'Create', path: '/create' },
   { name: 'Interact', path: '/interact' },
+  { name: 'Wallet', path: '/wallet' },
   { name: 'Learn', path: '/learn' },
   { name: 'Roadmap', path: '/roadmap' },
 ];

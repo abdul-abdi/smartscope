@@ -1,80 +1,122 @@
 import React from 'react';
-import { Shield, Loader2, InfoIcon } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card';
+import { Loader2, BrainCircuit, ChevronDown, ChevronUp } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
-import ReactMarkdown from 'react-markdown';
 
-interface ContractAnalysisCardProps {
+export interface ContractAnalysisCardProps {
   analysis: string;
-  isAnalyzing: boolean;
-  onAnalyze: () => void;
-  isAbiAvailable: boolean;
+  isLoading?: boolean;
 }
 
-const ContractAnalysisCard: React.FC<ContractAnalysisCardProps> = ({ 
-  analysis, 
-  isAnalyzing, 
-  onAnalyze,
-  isAbiAvailable
-}) => {
-  if (isAnalyzing) {
-    return (
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex items-center">
-            <Loader2 className="h-5 w-5 text-primary animate-spin mr-2" />
-            <p>Analyzing contract structure and security...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  if (!analysis) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onAnalyze}
-        className="mb-6"
-        disabled={!isAbiAvailable}
-      >
-        <InfoIcon className="mr-2 h-4 w-4" />
-        Analyze Contract
-      </Button>
-    );
-  }
+const ContractAnalysisCard: React.FC<ContractAnalysisCardProps> = ({ analysis, isLoading = false }) => {
+  const [expanded, setExpanded] = React.useState(false);
+
+  // Split analysis into sections based on headers (lines ending with :)
+  const formatAnalysis = () => {
+    if (!analysis) return [];
+    
+    const lines = analysis.split('\n');
+    const sections: { title: string; content: string[] }[] = [];
+    let currentSection: { title: string; content: string[] } | null = null;
+    
+    lines.forEach(line => {
+      if (line.trim().endsWith(':') || /^#+\s+.+:$/.test(line)) {
+        // This is a header, start a new section
+        if (currentSection) {
+          sections.push(currentSection);
+        }
+        currentSection = {
+          title: line.trim(),
+          content: []
+        };
+      } else if (currentSection && line.trim()) {
+        // This is content for the current section
+        currentSection.content.push(line.trim());
+      }
+    });
+    
+    // Add the last section
+    if (currentSection) {
+      sections.push(currentSection);
+    }
+    
+    return sections;
+  };
+
+  const analysisData = formatAnalysis();
   
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-md flex items-center">
-          <Shield className="mr-2 h-4 w-4 text-green-500" />
+    <Card className="border-dashed">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center">
+          <BrainCircuit className="h-5 w-5 mr-2 text-purple-500" />
           Contract Analysis
         </CardTitle>
         <CardDescription>
-          Information about the contract structure and potential security considerations
-          <span className="text-amber-600 dark:text-amber-400 block mt-1 text-xs">
-            Note: This is a basic analysis and may not identify all security issues
-          </span>
+          Automated analysis of contract functionality and potential usage
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-100 dark:border-green-800">
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown
-              components={{
-                h1: ({ node, ...props }) => <h3 className="text-lg font-bold mb-2" {...props} />,
-                h2: ({ node, ...props }) => <h4 className="text-md font-semibold mt-4 mb-2" {...props} />,
-                p: ({ node, ...props }) => <p className="mb-2" {...props} />,
-                ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2" {...props} />,
-                li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-              }}
-            >
-              {analysis}
-            </ReactMarkdown>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2">Analyzing contract...</span>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            {analysisData.length > 0 ? (
+              <>
+                {/* Show first two sections always */}
+                {analysisData.slice(0, 2).map((section, index) => (
+                  <div key={index} className="space-y-2">
+                    <h3 className="text-sm font-medium">{section.title}</h3>
+                    <div className="text-sm space-y-1">
+                      {section.content.map((line, i) => (
+                        <p key={i} className="text-muted-foreground">{line}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Show remaining sections if expanded */}
+                {expanded && analysisData.length > 2 && (
+                  <div className="space-y-4 pt-2 border-t">
+                    {analysisData.slice(2).map((section, index) => (
+                      <div key={index} className="space-y-2">
+                        <h3 className="text-sm font-medium">{section.title}</h3>
+                        <div className="text-sm space-y-1">
+                          {section.content.map((line, i) => (
+                            <p key={i} className="text-muted-foreground">{line}</p>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Toggle button if there are more than 2 sections */}
+                {analysisData.length > 2 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setExpanded(!expanded)}
+                    className="w-full flex items-center justify-center text-xs"
+                  >
+                    {expanded ? (
+                      <>Show Less <ChevronUp className="ml-1 h-3 w-3" /></>
+                    ) : (
+                      <>Show More <ChevronDown className="ml-1 h-3 w-3" /></>
+                    )}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">
+                No analysis data available
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

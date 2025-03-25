@@ -3,7 +3,7 @@ import {
   PrivateKey,
   FileCreateTransaction,
   ContractCreateTransaction,
-  FileAppendTransaction
+  Hbar
 } from '@hashgraph/sdk';
 import dotenv from 'dotenv';
 import { 
@@ -11,21 +11,23 @@ import {
   initializeClient, 
   validateHederaCredentials 
 } from '../../utils/hedera';
-import { withRetry, logError } from '../../utils/helpers';
+import { 
+  withRetry, 
+  logError, 
+  prepareContractForDeployment,
+  recombineContractBytecodeAndMetadata
+} from '../../utils/helpers';
 
 // Load environment variables
 dotenv.config();
 
-// Maximum chunk size for Hedera file service (in bytes)
-const MAX_CHUNK_SIZE = 1024;
-
 // Default gas limit for contract deployment
-const DEFAULT_GAS_LIMIT = 500000; // Increased from 100000 to handle larger contracts
+const DEFAULT_GAS_LIMIT = 500000;
 
 export async function POST(request: Request) {
   try {
     // Get bytecode and ABI from request
-    const { bytecode, abi } = await request.json();
+    const { bytecode, abi, deploymentId } = await request.json();
 
     if (!bytecode) {
       return NextResponse.json({ error: 'Missing bytecode' }, { status: 400 });
@@ -44,8 +46,43 @@ export async function POST(request: Request) {
     // Get Hedera credentials
     const { operatorId, operatorKey } = getHederaCredentials();
     
-    // Use withRetry to handle transient errors
-    return await withRetry(() => deployContract(bytecode, abi, operatorId, operatorKey));
+    // Optimize the bytecode for deployment
+    const preparedContract = prepareContractForDeployment(bytecode, abi);
+    const bytecodeForDeployment = preparedContract.bytecode;
+    const bytecodeHex = bytecodeForDeployment.startsWith('0x') ? bytecodeForDeployment.slice(2) : bytecodeForDeployment;
+    
+    // Calculate size to determine deployment approach
+    const bytecodeSizeInBytes = Buffer.from(bytecodeHex, 'hex').length;
+    
+    // Generate a deployment ID if not provided
+    const actualDeploymentId = deploymentId || `deployment-${Date.now()}`;
+    
+    // For large contracts, use direct deployment but with a smaller gas limit
+    // This avoids the file service chunking which is problematic on Vercel
+    if (bytecodeSizeInBytes > 32 * 1024) { // If larger than 32KB
+      console.log(`Large contract detected (${bytecodeSizeInBytes} bytes). Using direct deployment with optimized gas settings.`);
+      
+      // Return information for client-side handling of large contract
+      return NextResponse.json({
+        deploymentId: actualDeploymentId,
+        bytecodeSize: bytecodeSizeInBytes,
+        isLarge: true,
+        message: "Contract exceeds recommended size for single-step deployment. Use the large contract deployment endpoint.",
+        nextStep: "/api/direct-deploy",
+        optimizedSize: preparedContract.size.optimized,
+        originalSize: preparedContract.size.original,
+        savingsPercent: preparedContract.size.savingsPercent
+      });
+    }
+    
+    // For smaller contracts, use direct deployment approach
+    return await withRetry(() => deployContractDirect(
+      bytecodeForDeployment, 
+      abi, 
+      operatorId, 
+      operatorKey,
+      preparedContract
+    ));
   } catch (error: any) {
     logError('Error deploying contract', error, { route: 'deploy' });
     
@@ -68,7 +105,7 @@ export async function POST(request: Request) {
   }
 }
 
-async function deployContract(bytecode: string, abi: any, operatorId: string, operatorKey: string) {
+async function deployContractDirect(bytecode: string, abi: any, operatorId: string, operatorKey: string, preparedContract: any) {
   try {
     // Create Hedera client using utility function
     const client = await initializeClient(operatorId, operatorKey);
@@ -91,117 +128,44 @@ async function deployContract(bytecode: string, abi: any, operatorId: string, op
     const contractGas = calculateGasLimit(bytecodeHex.length);
     console.log(`Using gas limit: ${contractGas}`);
 
-    // If bytecode is too large for a single transaction, we'll use the file service
-    if (bytecodeHex.length > 2 * MAX_CHUNK_SIZE) {
-      console.log(`Bytecode too large for direct deployment. Using file service with ${Math.ceil(bytecodeHex.length / MAX_CHUNK_SIZE)} chunks.`);
+    // Create the contract function call
+    const contractCreateTx = new ContractCreateTransaction()
+      .setGas(contractGas)
+      .setBytecode(Buffer.from(bytecodeHex, 'hex'))
+      .setMaxTransactionFee(new Hbar(20))
+      .freezeWith(client);
+    
+    const contractCreateSign = await contractCreateTx.sign(privateKey);
+    const contractCreateSubmit = await contractCreateSign.execute(client);
+    
+    // Get the contract ID
+    try {
+      const contractReceipt = await contractCreateSubmit.getReceipt(client);
+      const contractId = contractReceipt.contractId;
       
-      // Create a file on Hedera and store the bytecode
-      const fileCreateTx = new FileCreateTransaction()
-        .setKeys([privateKey])
-        .freezeWith(client);
+      console.log(`Successfully deployed contract with ID: ${contractId?.toString()}`);
       
-      const fileCreateSign = await fileCreateTx.sign(privateKey);
-      const fileCreateSubmit = await fileCreateSign.execute(client);
-      const fileCreateRx = await fileCreateSubmit.getReceipt(client);
-      const bytecodeFileId = fileCreateRx.fileId;
-      
-      if (!bytecodeFileId) {
-        throw new Error("Failed to create file for bytecode");
-      }
-      
-      console.log(`The bytecode file ID is: ${bytecodeFileId}`);
-
-      // Append contents to the file
-      const fileChunks = Math.ceil(bytecodeHex.length / MAX_CHUNK_SIZE);
-      
-      // Process chunks with proper validation and error handling
-      for (let i = 0; i < fileChunks; i++) {
-        const chunk = bytecodeHex.slice(i * MAX_CHUNK_SIZE, (i + 1) * MAX_CHUNK_SIZE);
-        
-        try {
-          const chunkBuffer = Buffer.from(chunk, 'hex');
-          
-          const fileAppendTx = await new FileAppendTransaction()
-            .setFileId(bytecodeFileId)
-            .setContents(chunkBuffer)
-            .freezeWith(client);
-          
-          const fileAppendSign = await fileAppendTx.sign(privateKey);
-          const fileAppendSubmit = await fileAppendSign.execute(client);
-          await fileAppendSubmit.getReceipt(client);
-          
-          console.log(`Appended chunk ${i+1}/${fileChunks} to file (${chunk.length/2} bytes)`);
-        } catch (chunkError) {
-          console.error(`Error appending chunk ${i+1}/${fileChunks}:`, chunkError);
-          throw new Error(`Failed to append chunk ${i+1}/${fileChunks}: ${chunkError.message}`);
+      // Return successful response with contract details
+      return NextResponse.json({
+        contractId: contractId?.toString(),
+        contractAddress: contractId?.toSolidityAddress(),
+        abi,
+        metadata: preparedContract.metadata,
+        optimization: {
+          originalSize: preparedContract.size.original,
+          optimizedSize: preparedContract.size.optimized,
+          savingsPercent: preparedContract.size.savingsPercent
         }
-      }
-
-      // Create the contract using the file
-      const contractTx = await new ContractCreateTransaction()
-        .setBytecodeFileId(bytecodeFileId)
-        .setGas(contractGas)
-        .freezeWith(client);
-      
-      const contractSign = await contractTx.sign(privateKey);
-      const contractSubmit = await contractSign.execute(client);
-      
-      // Handle potential error in contract creation with better error reporting
-      try {
-        const contractReceipt = await contractSubmit.getReceipt(client);
-        const contractId = contractReceipt.contractId;
-        
-        console.log(`Successfully deployed contract with ID: ${contractId?.toString()}`);
-        
-        return NextResponse.json({
-          contractId: contractId?.toString(),
-          contractAddress: contractId?.toSolidityAddress(),
-          abi
-        });
-      } catch (receiptError) {
-        console.error("Contract deployment failed during receipt retrieval:", receiptError);
-        // Extract meaningful error from Hedera response
-        const errorMessage = extractHederaErrorMessage(receiptError);
-        throw new Error(`Contract deployment failed: ${errorMessage}`);
-      }
-    } else {
-      // For smaller contracts, we can deploy directly
-      console.log("Deploying contract directly (bytecode small enough)");
-      
-      // Create the contract function call
-      const contractCreateTx = new ContractCreateTransaction()
-        .setGas(contractGas)
-        .setBytecode(Buffer.from(bytecodeHex, 'hex'))
-        .freezeWith(client);
-      
-      const contractCreateSign = await contractCreateTx.sign(privateKey);
-      const contractCreateSubmit = await contractCreateSign.execute(client);
-      
-      // Get the contract ID
-      try {
-        const contractReceipt = await contractCreateSubmit.getReceipt(client);
-        const contractId = contractReceipt.contractId;
-        
-        console.log(`Successfully deployed contract with ID: ${contractId?.toString()}`);
-        
-        return NextResponse.json({
-          contractId: contractId?.toString(),
-          contractAddress: contractId?.toSolidityAddress(),
-          abi
-        });
-      } catch (receiptError) {
-        console.error("Contract deployment failed during receipt retrieval:", receiptError);
-        // Extract meaningful error from Hedera response
-        const errorMessage = extractHederaErrorMessage(receiptError);
-        throw new Error(`Contract deployment failed: ${errorMessage}`);
-      }
+      });
+    } catch (receiptError) {
+      console.error("Contract deployment failed during receipt retrieval:", receiptError);
+      // Extract meaningful error from Hedera response
+      const errorMessage = extractHederaErrorMessage(receiptError);
+      throw new Error(`Contract deployment failed: ${errorMessage}`);
     }
   } catch (error: any) {
-    logError('Error in deployContract', error, { operatorId });
-    return NextResponse.json(
-      { error: error.message || 'Error deploying contract' },
-      { status: 500 }
-    );
+    logError('Error in deployContractDirect', error, { operatorId });
+    throw error;
   }
 }
 
@@ -248,10 +212,9 @@ function extractHederaErrorMessage(error: any): string {
         return `${errorMap[errorStatus]} (${errorStatus})`;
       }
       
-      return `Deployment failed with status: ${errorStatus}`;
+      return `Error deploying contract: ${errorStatus}`;
     }
   }
   
-  // Fall back to the original error message
-  return error.message || 'Unknown deployment error';
+  return error.message || 'Unknown error during contract deployment';
 } 

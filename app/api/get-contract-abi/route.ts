@@ -204,8 +204,18 @@ export async function POST(request: Request) {
         
         if (!bytecodeToAnalyze) {
           // If not available, request it using our specialized endpoint
-          const origin = request.headers.get('origin') || 'http://localhost:3000';
-          const bytecodeResponse = await fetch(`${origin}/api/get-contract-bytecode`, {
+          // For server-side API routes, we need an absolute URL
+          let baseUrl;
+          const origin = request.headers.get('origin');
+          if (origin) {
+            baseUrl = origin;
+          } else {
+            const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+            const host = process.env.VERCEL_URL || 'localhost:3000';
+            baseUrl = `${protocol}://${host}`;
+          }
+          
+          const bytecodeResponse = await fetch(`${baseUrl}/api/get-contract-bytecode`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -307,8 +317,18 @@ export async function POST(request: Request) {
     
     try {
       // Get the bytecode using our improved bytecode analysis endpoint
-      const origin = request.headers.get('origin') || 'http://localhost:3000';
-      const bytecodeResponse = await fetch(`${origin}/api/get-contract-bytecode`, {
+      // For server-side API routes, we need an absolute URL
+      let baseUrl;
+      const origin = request.headers.get('origin');
+      if (origin) {
+        baseUrl = origin;
+      } else {
+        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+        const host = process.env.VERCEL_URL || 'localhost:3000';
+        baseUrl = `${protocol}://${host}`;
+      }
+      
+      const bytecodeResponse = await fetch(`${baseUrl}/api/get-contract-bytecode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -427,8 +447,13 @@ function extractSelectorsFromBytecode(bytecode: string): string[] {
   return [...new Set(selectors)]; // Remove duplicates
 }
 
-// Add standard functions based on common patterns
+// Modify the addStandardFunctions function to be more cautious
 function addStandardFunctions(abi: any[]): void {
+  // Don't add any assumed functions - this makes the ABI more accurate
+  // Only use what we've directly detected from the contract's bytecode
+  
+  // Legacy code retained in comments for reference
+  /*
   // Check if we have any ERC20-like functions
   const hasErc20Functions = abi.some(func => 
     ['balanceOf', 'transfer', 'transferFrom', 'approve'].includes(func.name)
@@ -451,6 +476,7 @@ function addStandardFunctions(abi: any[]): void {
       }
     }
   }
+  */
 }
 
 /**
@@ -489,6 +515,10 @@ async function discoverFunctionsViaSelectors(contractAddress: string): Promise<a
     }
   }
   
+  // Remove the heuristic that adds additional ERC20 functions
+  // Only include functions that were actually detected in the bytecode
+  
+  /* 
   // Additional heuristics for common patterns
   if (discoveredFunctions.some(f => f.name === 'name') && 
       discoveredFunctions.some(f => f.name === 'symbol') && 
@@ -520,6 +550,7 @@ async function discoverFunctionsViaSelectors(contractAddress: string): Promise<a
       });
     }
   }
+  */
   
   return discoveredFunctions;
 }

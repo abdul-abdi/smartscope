@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Circle, Clock, Sparkles, Code, Shield, Zap, Users, Globe, Database, Lock, LineChart, MessageSquare, FileCode, BookOpen, Cpu, GitBranch, Bug, Rocket, Bot, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Sparkles, Code, Shield, Zap, Users, Globe, Database, Lock, LineChart, MessageSquare, FileCode, BookOpen, Cpu, GitBranch, Bug, Rocket, Bot, ArrowRight, Braces, Star, Binoculars } from 'lucide-react';
 
 const roadmapItems = [
   {
@@ -48,6 +48,28 @@ const roadmapItems = [
           'Smart contract guidance',
           'Hedera-specific information',
           'Zero-setup contextual help'
+        ]
+      },
+      {
+        title: 'Dynamic Contract Interaction',
+        description: 'Universal smart contract interaction framework',
+        icon: Braces,
+        details: [
+          'Contract-type agnostic interface',
+          'Automatic function discovery',
+          'Live contract state visualization',
+          'Improved React component architecture'
+        ]
+      },
+      {
+        title: 'Advanced ABI Discovery',
+        description: 'Intelligent detection of contract interfaces',
+        icon: Binoculars,
+        details: [
+          'Bytecode-based function detection',
+          'Accurate function signature matching',
+          'Support for any contract type',
+          'Reliable state variable reading'
         ]
       }
     ]
@@ -95,6 +117,17 @@ const roadmapItems = [
     title: 'Future Plans (Q3 2025)',
     status: 'future',
     items: [
+      {
+        title: 'Cross-Chain Support',
+        description: 'Expand platform capabilities to support multiple blockchain networks',
+        icon: Globe,
+        details: [
+          'Ethereum integration',
+          'Multi-chain deployment',
+          'Cross-chain analytics',
+          'Unified interface for all chains'
+        ]
+      },
       {
         title: 'Advanced Analytics',
         description: 'Comprehensive analytics and reporting',

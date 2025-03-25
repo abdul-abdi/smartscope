@@ -151,7 +151,7 @@ export default function InteractPage() {
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="flex-1">
-                    <Link href="/existing">
+                    <Link href="/wallet">
                       <CodeSquare className="mr-2 h-4 w-4" />
                       Browse Contracts
                     </Link>

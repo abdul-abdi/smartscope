@@ -10,7 +10,7 @@ import { Progress } from '../../components/ui/progress';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { AlertCircle, Check, Code, Loader2, ArrowRight, FileCode, Shield, Copy, ExternalLink, Clipboard, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Check, Code, Loader2, ArrowRight, FileCode, Shield, Copy, ExternalLink, Clipboard, CheckCircle, Info, AlertTriangle, InfoIcon, FileUpIcon, AlertTriangleIcon, Code2Icon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
@@ -33,6 +33,12 @@ const CreateContractPage = () => {
   const [deploymentProgress, setDeploymentProgress] = useState<number>(0);
   const [deploymentStage, setDeploymentStage] = useState<string>('');
   const [isLargeContractDeployment, setIsLargeContractDeployment] = useState<boolean>(false);
+  const [pendingDeployment, setPendingDeployment] = useState<{
+    id: string;
+    fileId: string;
+    stage: string;
+    progress: number;
+  } | null>(null);
 
   useEffect(() => {
     // Set default sample contract
@@ -98,166 +104,132 @@ const CreateContractPage = () => {
     }
   };
 
-  const handleDeploy = async () => {
-    if (!compilationResult) {
+  const handleDeploy = async (resumeOp = false, existingFileId = null, customDeploymentId = null) => {
+    if (!compilationResult && !resumeOp) {
       setError('Please compile the contract first');
       return;
     }
 
+    // Clear any existing errors when starting a new deployment
     setIsDeploying(true);
     setError('');
-    setDeploymentProgress(0);
-    setDeploymentStage('');
+    
+    // Reset pending deployment if this is a new deployment
+    if (!resumeOp) {
+      setPendingDeployment(null);
+    }
+    
+    setDeploymentProgress(resumeOp ? 30 : 0); // Start at higher progress for resume
+    setDeploymentStage(resumeOp ? 'Resuming deployment...' : 'Preparing for deployment');
     
     try {
-      // Check if the bytecode is large (over 2KB)
-      const bytecodeSize = compilationResult.bytecode.length;
-      const isLargeContract = bytecodeSize > 4096; // 2KB in hex is roughly 4096 characters
-      setIsLargeContractDeployment(isLargeContract);
-      
+      // Check if the bytecode is large (over 32KB)
+      const bytecodeSize = compilationResult?.bytecode?.length || 0;
       console.log(`Contract size: ${bytecodeSize} characters, ${Math.ceil(bytecodeSize/2/1024)} KB`);
       
-      if (isLargeContract) {
-        console.log('Detected large contract, using specialized deployment process');
-        setDeploymentStage('Preparing large contract deployment');
-        setDeploymentProgress(10);
+      // Generate a unique deployment ID
+      const deploymentId = customDeploymentId || `deploy-${Date.now()}`;
+      console.log(`Starting deployment with ID: ${deploymentId}`);
+      
+      // Make initial API request to start deployment
+      const response = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bytecode: compilationResult.bytecode,
+          abi: compilationResult.abi,
+          deploymentId
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Deployment failed');
+      }
+      
+      const data = await response.json();
+      
+      // Check if it's a large contract that needs special handling
+      if (data.isLarge) {
+        console.log('Large contract detected, using specialized direct deployment');
+        setIsLargeContractDeployment(true);
+        setDeploymentStage('Large contract detected, using optimized deployment');
+        setDeploymentProgress(30);
         
-        // Create a unique deployment ID for this session
-        const deploymentId = `deploy-${Date.now()}`;
-        console.log(`Starting deployment with ID: ${deploymentId}`);
-        
-        // Create a flag to track if we've completed (to avoid duplicate state updates)
-        let isDeploymentCompleted = false;
-        
-        // Setup event source for tracking progress
-        const eventSource = new EventSource(`/api/handle-large-contracts/status?id=${deploymentId}`);
-        
-        // Listen for status updates
-        eventSource.onmessage = (event) => {
-          try {
-            console.log('Raw event data:', event.data);
-            const data = JSON.parse(event.data);
-            console.log('Parsed deployment update:', data);
-            
-            // Update progress and stage
-            if (data.progress !== undefined) {
-              setDeploymentProgress(data.progress);
-            }
-            
-            if (data.stage) {
-              setDeploymentStage(data.stage);
-            }
-            
-            // Check for completion status
-            if (data.status === 'completed' && !isDeploymentCompleted) {
-              isDeploymentCompleted = true;
-              console.log('Deployment completed via SSE notification');
-              
-              // Set contract address if available
-              if (data.contractAddress) {
-                setContractAddress(data.contractAddress);
-                console.log(`Contract deployed at: ${data.contractAddress}`);
-              }
-              
-              // Update UI state
-              setDeploymentProgress(100);
-              setIsDeploying(false);
-              
-              // Close the event source
-              eventSource.close();
-            }
-            
-            // Check for error status
-            if (data.status === 'error' && !isDeploymentCompleted) {
-              isDeploymentCompleted = true;
-              setError(data.error || 'An error occurred during deployment');
-              setIsDeploying(false);
-              eventSource.close();
-            }
-            
-          } catch (err) {
-            console.error('Error parsing SSE data:', err);
-          }
-        };
-        
-        // Handle event source errors
-        eventSource.onerror = (err) => {
-          console.error('SSE connection error:', err);
-          
-          // Only handle error if we haven't already completed
-          if (!isDeploymentCompleted) {
-            isDeploymentCompleted = true;
-            setError('Lost connection to deployment service');
-            setIsDeploying(false);
-            eventSource.close();
-          }
-        };
-        
-        // Start the actual deployment
-        try {
-          const response = await fetch('/api/handle-large-contracts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              bytecode: compilationResult.bytecode,
-              abi: compilationResult.abi,
-              deploymentId: deploymentId
-            }),
-          });
-          
-          const data = await response.json();
-          
-          if (!response.ok) {
-            isDeploymentCompleted = true;
-            eventSource.close();
-            handleDeploymentError(data);
-            return;
-          }
-          
-          // If we get an immediate response with a contract address
-          if (data.contractAddress && !isDeploymentCompleted) {
-            console.log('Deployment completed via direct API response');
-            isDeploymentCompleted = true;
-            setContractAddress(data.contractAddress);
-            setDeploymentProgress(100);
-            setDeploymentStage('Contract deployed successfully');
-            setIsDeploying(false);
-            eventSource.close();
-          }
-        } catch (err) {
-          console.error('API request error:', err);
-          if (!isDeploymentCompleted) {
-            isDeploymentCompleted = true;
-            setError('Error calling deployment API');
-            setIsDeploying(false);
-            eventSource.close();
-          }
-        }
-      } else {
-        // Use the standard deploy endpoint for regular-sized contracts
-        const response = await fetch('/api/deploy', {
+        // Make a request to the direct deployment endpoint
+        const directResponse = await fetch('/api/direct-deploy', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            bytecode: compilationResult.bytecode, 
-            abi: compilationResult.abi
+            bytecode: compilationResult.bytecode,
+            abi: compilationResult.abi,
+            deploymentId
           }),
         });
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          handleDeploymentError(data);
-          return;
+        if (!directResponse.ok) {
+          const directData = await directResponse.json();
+          throw new Error(directData.error || 'Direct deployment failed');
         }
         
-        setContractAddress(data.contractAddress);
-        console.log(`Contract successfully deployed at address: ${data.contractAddress}`);
-        setIsDeploying(false);
+        const directData = await directResponse.json();
+        
+        if (directData.success) {
+          setDeploymentProgress(100);
+          setDeploymentStage('Contract deployed successfully');
+          setContractAddress(directData.contractAddress);
+          setIsDeploying(false);
+        } else {
+          // Start polling for status in case the deployment is still in progress
+          let statusCheckAttempts = 0;
+          const maxStatusChecks = 5;
+          const checkDeploymentStatus = async () => {
+            if (statusCheckAttempts >= maxStatusChecks) {
+              throw new Error('Deployment timed out');
+            }
+            
+            statusCheckAttempts++;
+            setDeploymentStage(`Checking deployment status (attempt ${statusCheckAttempts})...`);
+            setDeploymentProgress(50 + statusCheckAttempts * 10);
+            
+            const statusResponse = await fetch(`/api/direct-deploy?id=${deploymentId}`);
+            const statusData = await statusResponse.json();
+            
+            if (statusData.status === 'completed' && statusData.contractAddress) {
+              setDeploymentProgress(100);
+              setDeploymentStage('Contract deployed successfully');
+              setContractAddress(statusData.contractAddress);
+              setIsDeploying(false);
+              return;
+            } else if (statusData.status === 'error') {
+              throw new Error(statusData.error || 'Deployment failed');
+            } else {
+              // Still in progress, continue polling
+              setTimeout(checkDeploymentStatus, 2000);
+            }
+          };
+          
+          // Start polling
+          checkDeploymentStatus();
+        }
+      } else {
+        // Standard deployment
+        setIsLargeContractDeployment(false);
+        
+        if (data.contractId && data.contractAddress) {
+          // Deployment was successful
+          setDeploymentProgress(100);
+          setDeploymentStage('Contract deployed successfully');
+          setContractAddress(data.contractAddress);
+          setIsDeploying(false);
+        } else {
+          // This should not happen with standard deployment
+          throw new Error('Deployment did not return a contract address');
+        }
       }
     } catch (err: any) {
       console.error('Deployment error:', err);
@@ -268,13 +240,32 @@ const CreateContractPage = () => {
   
   // Helper function to handle deployment errors
   const handleDeploymentError = (data: any) => {
+    console.error('Deployment error data:', data);
+    
     // Handle specific error types
     if (data.errorCode === 'PAYER_ACCOUNT_NOT_FOUND') {
       setError(`Hedera account not found. Please check your account credentials in the .env.local file.`);
     } else if (data.errorType === 'CREDENTIAL_ERROR') {
       setError(`Credential error: ${data.error}`);
+    } else if (data.error?.includes('bytecode') || data.errorDetails?.includes('bytecode')) {
+      setError(`Bytecode error: ${data.error}. This may happen during resumption. Try deploying again.`);
     } else {
       setError(data.error || 'An error occurred during deployment');
+    }
+    
+    // If we get detailed error info, log it
+    if (data.errorDetails) {
+      console.error('Error details:', data.errorDetails);
+    }
+    
+    // Show the retry button if this was a resumption error
+    if (data.resumeNeeded || data.error?.includes('resume') || data.error?.includes('timeout')) {
+      setPendingDeployment({
+        id: data.deploymentId,
+        fileId: data.fileId || '',
+        stage: 'Failed - needs retry',
+        progress: 0
+      });
     }
   };
 
@@ -468,7 +459,7 @@ const CreateContractPage = () => {
                 </Button>
                 
                 <Button
-                  onClick={handleDeploy}
+                  onClick={() => handleDeploy()}
                   disabled={isDeploying || !compilationResult}
                   variant={compilationResult ? "default" : "secondary"}
                   className="group"
@@ -562,13 +553,114 @@ const CreateContractPage = () => {
                   <div>
                     <h3 className="text-sm font-medium text-foreground/80 mb-1">Deployment</h3>
                     <p className="text-sm text-foreground/60">
-                      {!contractAddress && !isDeploying && 'Waiting for deployment'}
+                      {!contractAddress && !isDeploying && !pendingDeployment && 'Waiting for deployment'}
                       {isDeploying && !isLargeContractDeployment && 'Deploying to Hedera Testnet...'}
                       {isDeploying && isLargeContractDeployment && deploymentStage}
                       {contractAddress && !isDeploying && 'Contract deployed successfully'}
+                      {!isDeploying && pendingDeployment && pendingDeployment.stage}
                     </p>
+                    
+                    {/* Show retry button for failed deployments */}
+                    {!isDeploying && pendingDeployment && (
+                      <div className="mt-3">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setDeploymentStage('Retrying failed deployment...');
+                            setDeploymentProgress(pendingDeployment.progress || 0);
+                            setIsDeploying(true);
+                            setError('');
+                            
+                            // Start the deployment process again with the existing fileId
+                            setTimeout(() => {
+                              console.log('Retrying deployment with fileId:', pendingDeployment.fileId);
+                              
+                              // Create a unique deployment ID for this session
+                              const retryDeploymentId = `deploy-retry-${Date.now()}`;
+                              console.log(`Starting retry deployment with ID: ${retryDeploymentId}`);
+                              
+                              // Create a flag to track if we've completed (to avoid duplicate state updates)
+                              let isRetryCompleted = false;
+                              let resumeAttempts = 0;
+                              
+                              // Start with a resume operation
+                              handleDeploy(true, pendingDeployment.fileId, retryDeploymentId);
+                            }, 500);
+                          }}
+                          className="flex items-center gap-1.5"
+                        >
+                          <AlertTriangleIcon className="h-3.5 w-3.5 text-amber-500" />
+                          Retry Deployment
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          The previous deployment attempt was interrupted. Click above to resume.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {deploymentStage === 'Auto-resuming' && (
+                      <Alert className="bg-blue-50 dark:bg-blue-950 mb-4">
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>Large Contract Deployment</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          This large contract deployment is being automatically resumed due to Vercel's timeout limits. The system will continue the deployment process without interruption.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {deploymentStage && deploymentStage.includes('Uploading bytecode') && (
+                      <Alert className="bg-blue-50 dark:bg-blue-950 mb-4">
+                        <FileUpIcon className="h-4 w-4" />
+                        <AlertTitle>Uploading Contract Bytecode</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          Bytecode is being uploaded in chunks. This process may require multiple steps for very large contracts. Progress: {deploymentStage.match(/\((\d+)%\)/)?.[1] || '0'}%
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {deploymentStage && deploymentStage.includes('empty') && (
+                      <Alert className="bg-amber-50 dark:bg-amber-950 mb-4">
+                        <AlertTriangleIcon className="h-4 w-4" />
+                        <AlertTitle>File Upload Issue Detected</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          There may be an issue with the contract file. The system will try to upload the bytecode directly instead.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {deploymentStage && deploymentStage.includes('direct bytecode') && (
+                      <Alert className="bg-purple-50 dark:bg-purple-950 mb-4">
+                        <Code2Icon className="h-4 w-4" />
+                        <AlertTitle>Direct Bytecode Deployment</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          The system is deploying your contract directly with bytecode instead of using the file method. This is an automatic fallback to ensure your contract deploys successfully.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {deploymentStage && (
+                      <Alert className="bg-blue-50 dark:bg-blue-950 mb-4">
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>Deployment Status</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          {deploymentStage}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {deploymentStage && deploymentStage.includes('large contract') && (
+                      <Alert className="bg-purple-50 dark:bg-purple-950 mb-4">
+                        <Code2Icon className="h-4 w-4" />
+                        <AlertTitle>Optimized Direct Deployment</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          Your contract exceeds 32KB and is being deployed using our optimized direct deployment method. This ensures reliable deployment on Vercel without timeouts.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {isDeploying && isLargeContractDeployment && (
-                      <div className="mt-2">
+                      <div className="mt-2 mb-4">
                         <Progress value={deploymentProgress} className="h-2" />
                         <p className="text-xs text-right mt-1 text-foreground/60">{deploymentProgress}%</p>
                       </div>
@@ -592,24 +684,35 @@ const CreateContractPage = () => {
                     transition={{ duration: 0.3 }}
                   >
                     <h3 className="text-sm font-medium text-foreground/80 mb-2">Contract Address</h3>
-                    <div className="p-3 bg-background/80 rounded-lg font-mono text-sm break-all mb-4 border border-primary/20">
+                    <div className="p-3 bg-background/80 rounded-lg font-mono text-sm break-all mb-4 border border-primary/20 relative group">
                       {contractAddress}
+                      <button
+                        onClick={handleCopyContract}
+                        className="absolute right-2 top-2 p-1 rounded-md bg-background/50 text-foreground/60 hover:text-foreground hover:bg-background transition-colors"
+                        aria-label="Copy contract address"
+                      >
+                        {copied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </button>
                     </div>
-                    <Button
-                      onClick={handleInteract}
-                      className="w-full group mb-2"
-                    >
-                      Interact with Contract
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(`https://hashscan.io/testnet/contract/${contractAddress}`, '_blank')}
-                      className="w-full group"
-                    >
-                      View on HashScan
-                      <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
+                    <div className="flex flex-col space-y-2">
+                      <Button
+                        onClick={handleInteract}
+                        className="w-full group"
+                        size="lg"
+                      >
+                        <Code className="mr-2 h-4 w-4" />
+                        Interact with Contract
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(`https://hashscan.io/testnet/contract/${contractAddress}`, '_blank')}
+                        className="w-full group"
+                      >
+                        View on HashScan
+                        <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </div>
                   </motion.div>
                 )}
               </div>

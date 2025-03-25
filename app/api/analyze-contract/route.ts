@@ -1,67 +1,185 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Client, ContractCallQuery, ContractInfoQuery, ContractId, Hbar } from '@hashgraph/sdk';
 import dotenv from 'dotenv';
 import { getHederaCredentials, initializeClient, formatContractId } from '../../utils/hedera';
+import { ContractFunction } from '../../types/contract';
+import { ethers } from 'ethers';
 
 // Load environment variables
 dotenv.config();
 
-export async function POST(request: Request) {
+const analyzeAbi = (abi: ContractFunction[]) => {
+  // Count function types
+  const readFunctions = abi.filter(func => 
+    func.stateMutability === 'view' || 
+    func.stateMutability === 'pure' || 
+    func.constant === true
+  );
+  
+  const writeFunctions = abi.filter(func => 
+    func.stateMutability === 'nonpayable' || 
+    func.stateMutability === 'payable'
+  );
+  
+  // Look for common patterns
+  const hasOwnership = abi.some(func => 
+    func.name === 'owner' || 
+    func.name === 'transferOwnership' || 
+    func.name === 'renounceOwnership'
+  );
+  
+  const isERC20 = abi.some(func => func.name === 'totalSupply') &&
+                 abi.some(func => func.name === 'balanceOf') &&
+                 abi.some(func => func.name === 'transfer');
+  
+  const isERC721 = abi.some(func => func.name === 'balanceOf') &&
+                  abi.some(func => func.name === 'ownerOf') &&
+                  abi.some(func => func.name === 'transferFrom');
+                  
+  const hasAccessControl = abi.some(func => 
+    func.name === 'hasRole' || 
+    func.name === 'getRoleMember'
+  );
+  
+  const hasPausable = abi.some(func => 
+    func.name === 'pause' || 
+    func.name === 'unpause' || 
+    func.name === 'paused'
+  );
+  
+  const hasUpgradeable = abi.some(func => 
+    func.name === 'upgradeTo' || 
+    func.name === 'upgradeToAndCall'
+  );
+  
+  // Build analysis text
+  let analysis = '';
+  
+  // Contract type
+  analysis += 'Contract Type:\n';
+  if (isERC20) {
+    analysis += '- This appears to be an ERC20 token contract\n';
+  } else if (isERC721) {
+    analysis += '- This appears to be an ERC721 NFT contract\n';
+  } else {
+    analysis += '- This appears to be a custom or utility contract\n';
+  }
+  
+  // Function breakdown
+  analysis += '\nFunction Breakdown:\n';
+  analysis += `- ${readFunctions.length} read functions\n`;
+  analysis += `- ${writeFunctions.length} write functions\n`;
+  
+  // Key features
+  analysis += '\nKey Features:\n';
+  if (hasOwnership) {
+    analysis += '- Has ownership control (Ownable pattern)\n';
+  }
+  
+  if (hasAccessControl) {
+    analysis += '- Implements role-based access control\n';
+  }
+  
+  if (hasPausable) {
+    analysis += '- Contract can be paused (emergency stop mechanism)\n';
+  }
+  
+  if (hasUpgradeable) {
+    analysis += '- Contract is upgradeable\n';
+  }
+  
+  // Contract security considerations
+  analysis += '\nSecurity Considerations:\n';
+  if (hasUpgradeable) {
+    analysis += '- Upgradeable contracts should be verified for secure upgrade mechanisms\n';
+  }
+  
+  if (writeFunctions.some(f => f.name.includes('mint') || f.name.includes('create'))) {
+    analysis += '- Contains minting functions - ensure proper access controls\n';
+  }
+  
+  if (writeFunctions.some(f => f.name.includes('burn') || f.name.includes('destroy'))) {
+    analysis += '- Contains burning/destruction functions - ensure proper access controls\n';
+  }
+  
+  if (writeFunctions.some(f => f.stateMutability === 'payable')) {
+    analysis += '- Contains payable functions - ensure proper fund handling\n';
+  }
+  
+  if (!hasOwnership && !hasAccessControl && writeFunctions.length > 0) {
+    analysis += '- No obvious access control - may allow unauthorized operations\n';
+  }
+  
+  // Usage guidance
+  analysis += '\nInteraction Guidance:\n';
+  
+  if (readFunctions.some(f => f.name === 'balanceOf')) {
+    analysis += '- Use balanceOf to check token balances\n';
+  }
+  
+  if (writeFunctions.some(f => f.name === 'transfer' || f.name === 'transferFrom')) {
+    analysis += '- Use transfer/transferFrom to move tokens\n';
+  }
+  
+  if (writeFunctions.some(f => f.name === 'approve')) {
+    analysis += '- Use approve to authorize a spender\n';
+  }
+  
+  return analysis;
+};
+
+export async function POST(request: NextRequest) {
   try {
     const { contractAddress, abi } = await request.json();
-
+    
     if (!contractAddress) {
       return NextResponse.json({ error: 'Contract address is required' }, { status: 400 });
     }
-
-    console.log('Analyzing contract:', contractAddress);
+    
+    let contractAbi;
     
     // Parse ABI if provided
-    let abiData = null;
     if (abi) {
       try {
-        abiData = typeof abi === 'string' ? JSON.parse(abi) : abi;
-        console.log(`ABI provided with ${abiData.length} items`);
-      } catch (e) {
-        console.warn('Could not parse provided ABI:', e);
+        contractAbi = JSON.parse(abi);
+      } catch (error) {
+        return NextResponse.json({ error: 'Invalid ABI format' }, { status: 400 });
+      }
+    } else {
+      // Attempt to get ABI from Hedera's explorer API
+      try {
+        // Example: use ethers provider to get deployed code
+        const provider = new ethers.providers.JsonRpcProvider('https://testnet.hashio.io/api');
+        const code = await provider.getCode(contractAddress);
+        
+        if (code === '0x') {
+          return NextResponse.json(
+            { error: 'Contract not found or has no deployed code' }, 
+            { status: 404 }
+          );
+        }
+        
+        // In a real application, you would use a service like Sourcify or Etherscan to get the ABI
+        // For this example, we'll return a generic message
+        return NextResponse.json({
+          analysis: 'Contract exists but ABI was not provided. Please provide an ABI for detailed analysis.'
+        });
+      } catch (error: any) {
+        return NextResponse.json(
+          { error: `Failed to fetch contract data: ${error.message}` },
+          { status: 500 }
+        );
       }
     }
     
-    try {
-      // Try to get contract info via mirror node API first (no CostQuery required)
-      const mirrorNodeAnalysis = await fetchContractInfoFromMirrorNode(contractAddress);
-      
-      // If we have ABI data, enhance the analysis
-      if (abiData && Array.isArray(abiData)) {
-        const enhancedAnalysis = enhanceAnalysisWithAbi(mirrorNodeAnalysis, abiData);
-        return NextResponse.json({ analysis: enhancedAnalysis });
-      }
-      
-      return NextResponse.json({ analysis: mirrorNodeAnalysis });
-    } catch (mirrorError) {
-      console.log('Mirror node approach failed, trying direct query:', mirrorError);
-      
-      // Fallback to direct query
-      // Get Hedera credentials
-      const { operatorId, operatorKey } = getHederaCredentials();
-
-      // Format contract ID
-      const formattedContractId = formatContractId(contractAddress);
-
-      // Analyze the contract
-      let analysis = await analyzeContract(formattedContractId, operatorId, operatorKey);
-      
-      // If we have ABI data, enhance the analysis
-      if (abiData && Array.isArray(abiData)) {
-        analysis = enhanceAnalysisWithAbi(analysis, abiData);
-      }
-
-      return NextResponse.json({ analysis });
-    }
+    // Analyze the contract ABI
+    const analysis = analyzeAbi(contractAbi);
+    
+    return NextResponse.json({ analysis });
   } catch (error: any) {
-    console.error('Error analyzing contract:', error);
+    console.error('Contract analysis error:', error);
     return NextResponse.json(
-      { error: error.message || 'Error analyzing contract' },
+      { error: `Failed to analyze contract: ${error.message}` },
       { status: 500 }
     );
   }

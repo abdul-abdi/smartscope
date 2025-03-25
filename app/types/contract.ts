@@ -18,6 +18,10 @@ export interface ContractFunction {
   outputs: FunctionOutput[];
   stateMutability: string;
   type?: string;
+  constant?: boolean;
+  humanReadableSignature?: string;
+  verified?: boolean;
+  selector?: string;
 }
 
 // Compilation result

@@ -1,14 +1,21 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
-import { ArrowLeft, Copy, CheckCircle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Copy, CheckCircle, ExternalLink, FileCode, Terminal } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../../components/ui/tooltip';
+import { Badge } from '../../../../components/ui/badge';
 
-interface ContractHeaderProps {
+export interface ContractHeaderProps {
   contractAddress: string;
+  abiSource?: string;
+  functionsCount?: number;
 }
 
-const ContractHeader: React.FC<ContractHeaderProps> = ({ contractAddress }) => {
+const ContractHeader: React.FC<ContractHeaderProps> = ({ 
+  contractAddress,
+  abiSource,
+  functionsCount = 0
+}) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopyAddress = () => {
@@ -20,7 +27,7 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({ contractAddress }) => {
   return (
     <div className="mb-4">
       <div className="flex items-center mb-2">
-        <Link href="/interact" className="inline-flex items-center">
+        <Link href="/explore" className="inline-flex items-center">
           <Button variant="ghost" size="sm" className="mr-2 group">
             <ArrowLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
             Back
@@ -80,9 +87,28 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({ contractAddress }) => {
         </div>
       </div>
       
-      <p className="text-sm text-muted-foreground">
-        Interact with smart contract at: <span className="font-medium">{contractAddress}</span>
-      </p>
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">
+          Interact with smart contract at: <span className="font-medium">{contractAddress}</span>
+        </p>
+        
+        {abiSource && functionsCount > 0 && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Terminal className="h-3 w-3" />
+              {functionsCount} functions
+            </Badge>
+            
+            <Badge variant="outline" className="flex items-center gap-1">
+              <FileCode className="h-3 w-3" />
+              {abiSource === 'bytecode' ? 'Bytecode Analysis' : 
+               abiSource === 'manual-bytecode' ? 'Manual Bytecode' : 
+               abiSource === 'explorer' ? 'Explorer Verified' : 
+               abiSource}
+            </Badge>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

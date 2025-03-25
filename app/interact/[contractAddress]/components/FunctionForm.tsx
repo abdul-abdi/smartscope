@@ -5,7 +5,7 @@ import { Button } from '../../../../components/ui/button';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
 import { Loader2, Send, BookOpen, Terminal, Code, Pencil } from 'lucide-react';
-import ContractTransactionDetails from '../../../../components/ContractTransactionDetails';
+import ContractTransactionDetails from './ContractTransactionDetails';
 
 interface FunctionInput {
   name: string;

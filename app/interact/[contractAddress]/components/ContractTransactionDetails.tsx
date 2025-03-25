@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ExternalLink, Code, HelpCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { Badge } from './ui/badge';
+import { ChevronDown, ChevronUp, ExternalLink, Code, HelpCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import { Button } from '../../../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../../components/ui/tooltip';
+import { Badge } from '../../../../components/ui/badge';
+import { Alert, AlertDescription } from '../../../../components/ui/alert';
 
 interface TransactionDetailsProps {
   result: any;
@@ -30,11 +31,11 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
   const hasTrace = result.executionTrace;
   
   // Get the main result value to display prominently
-  let displayValue = result.value || result.result;
+  let displayValue = result.value || result.result || result.returnValue;
   // If the result is in a nested structure, try to extract it
   if (!displayValue && result.status === "SUCCESS" && typeof result === 'object') {
     // Look for common result properties
-    displayValue = result.returnValue || result.output || result.data || result.returnData;
+    displayValue = result.output || result.data || result.returnData;
   }
   
   // Format any values for display
@@ -90,6 +91,12 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
     return <span className="font-mono">{value}</span>;
   };
   
+  // Function to handle copying text to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // You could add a toast notification here
+  };
+  
   return (
     <Card className="mt-4 overflow-hidden border-blue-100 dark:border-blue-900 shadow-sm">
       <CardHeader className="py-3 cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => setExpanded(!expanded)}>
@@ -123,11 +130,50 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
             <h3 className="text-sm font-semibold">
               {isReadFunction ? 'Return Value:' : 'Transaction Result:'}
             </h3>
+            {typeof displayValue === 'string' && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="ml-auto h-7 px-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(displayValue as string);
+                }}
+              >
+                Copy
+              </Button>
+            )}
           </div>
           <div className="pl-3 border-l-2 border-green-400 dark:border-green-600 bg-white/80 dark:bg-gray-900/80 p-2 rounded shadow-sm">
             <pre className="font-mono text-sm overflow-x-auto whitespace-pre-wrap break-all">
               {formatValue(displayValue)}
             </pre>
+          </div>
+        </div>
+      )}
+      
+      {/* State changes if available */}
+      {result.stateChanges && (
+        <div className="px-4 py-3 border-t border-b bg-purple-50/50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800">
+          <div className="flex items-center mb-1">
+            <h3 className="text-sm font-semibold">State Changes:</h3>
+          </div>
+          <div className="pl-3 border-l-2 border-purple-400 dark:border-purple-600 bg-white/80 dark:bg-gray-900/80 p-2 rounded shadow-sm">
+            {Object.entries(result.stateChanges).map(([key, change]: [string, any]) => (
+              <div key={key} className="mb-2">
+                <div className="text-sm font-medium">{key}:</div>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                    <div className="text-xs text-red-600 dark:text-red-400 mb-1">Before:</div>
+                    <code className="text-xs">{formatValue(change.before)}</code>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                    <div className="text-xs text-green-600 dark:text-green-400 mb-1">After:</div>
+                    <code className="text-xs">{formatValue(change.after)}</code>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -315,9 +361,19 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
                     <div className="space-y-3">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Hash:</p>
-                        <p className="font-mono text-sm break-all bg-background/80 p-2 rounded border border-border/30">
-                          {result.transactionHash || result.txId}
-                        </p>
+                        <div className="flex">
+                          <p className="font-mono text-sm break-all bg-background/80 p-2 rounded border border-border/30 flex-1">
+                            {result.transactionHash || result.txId}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2"
+                            onClick={() => copyToClipboard(result.transactionHash || result.txId)}
+                          >
+                            Copy
+                          </Button>
+                        </div>
                       </div>
                       
                       <div>
@@ -360,14 +416,10 @@ const ContractTransactionDetails: React.FC<TransactionDetailsProps> = ({
                             </div>
                           )}
                           
-                          {result.executionTrace?.gasUsed && (
+                          {result.gasEstimate && (
                             <div>
-                              <p className="text-xs text-muted-foreground mb-1">Gas Used:</p>
-                              <p className="font-mono text-sm">{
-                                typeof result.executionTrace.gasUsed === 'string' && result.executionTrace.gasUsed.startsWith('0x')
-                                  ? parseInt(result.executionTrace.gasUsed, 16).toLocaleString()
-                                  : result.executionTrace.gasUsed
-                              }</p>
+                              <p className="text-xs text-muted-foreground mb-1">Gas Estimate:</p>
+                              <p className="font-mono text-sm">~{parseInt(result.gasEstimate, 16).toLocaleString()}</p>
                             </div>
                           )}
                         </>

@@ -89,22 +89,22 @@ export async function callContractFunction(
 /**
  * Analyze a smart contract based on its ABI
  * 
- * @param abi The contract ABI
  * @param contractAddress The contract address or ID
+ * @param abi Optional contract ABI
  * @returns The analysis result
  */
 export async function analyzeContract(
-  abi: any[],
-  contractAddress: string
-): Promise<ContractAnalysisResult> {
+  contractAddress: string,
+  abi?: any[]
+): Promise<string> {
   const response = await fetch('/api/analyze-contract', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      abi: JSON.stringify(abi),
       contractAddress,
+      abi: abi ? JSON.stringify(abi) : undefined,
     }),
   });
   
@@ -113,5 +113,6 @@ export async function analyzeContract(
     throw new Error(error.error || 'Failed to analyze contract');
   }
   
-  return response.json();
+  const data = await response.json();
+  return data.analysis || '';
 } 

@@ -92,8 +92,10 @@ export async function POST(request: Request) {
 
     try {
       // Determine server-relative API URL for internal fetch calls
-      // We're using relative URLs for internal API calls since we're on the same server
-      const baseUrl = ''; // Intentionally empty for relative paths - will work in all environments
+      // We need to use absolute URLs for server-side API calls
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+      const host = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'localhost:3000';
+      const baseUrl = `${protocol}://${host}`;
       
       // Verify the function exists in the contract
       if (abi && Array.isArray(abi)) {
@@ -226,6 +228,17 @@ export async function POST(request: Request) {
           
         console.log(`${logPrefix}Determined from ABI that ${functionName} is ${isReadFunction ? 'a read' : 'a write'} function`);
       }
+    }
+    
+    // Now that we know if it's a read function, check if we should block the call for non-existent functions
+    if (!functionExists && isReadFunction) {
+      // If this is a read function and we're confident it doesn't exist, return an error
+      // This helps prevent unnecessary errors in the UI for non-existent functions
+      return NextResponse.json({ 
+        error: `Function '${functionName}' does not appear to exist in this contract. It may have been extracted from source code or ABI but is not implemented in the bytecode.`,
+        errorType: 'FUNCTION_NOT_FOUND',
+        suggestion: 'Try a different function or verify the contract implements this functionality.'
+      }, { status: 400 });
     }
 
     console.log(`${logPrefix}Call request: ${functionName} at ${contractAddress}, isQuery: ${isReadFunction}, params:`, parameters);

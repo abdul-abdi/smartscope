@@ -3,18 +3,28 @@
 <div align="center">
   <img src="public/favicon.svg" alt="SmartScope Logo" width="150" height="auto" />
   <p><strong>Smart Contract Analyzer for Hedera Testnet</strong></p>
+  <div>
+    <a href="#-overview">Overview</a> •
+    <a href="#-key-features">Features</a> •
+    <a href="#-getting-started">Getting Started</a> •
+    <a href="#-application-workflow">Workflow</a> •
+    <a href="#-usage-guide">Usage</a> •
+    <a href="#-documentation">Documentation</a>
+  </div>
 </div>
 
 ## 📋 Overview
 
 SmartScope is an all-in-one platform for blockchain developers to build, analyze, deploy, and interact with smart contracts on the Hedera Testnet. Our platform streamlines the development process with zero setup required - no wallet configuration needed. SmartScope combines powerful development tools with an integrated AI assistant to guide you through the blockchain development journey.
 
-### Key Features
+## 🔑 Key Features
 
 - 🔍 **Smart Contract Analysis** - Instantly analyze Solidity code for insights and security considerations
 - 🚀 **One-Click Deployment** - Deploy to Hedera Testnet without wallet configuration or manual gas settings
 - 🔒 **Security-First Approach** - Automated security checks and best practice suggestions
-- ⚡ **Real-time Interaction** - Call functions and view transaction results instantly
+- ⚡ **Universal Contract Interaction** - Dynamically interact with any contract type using intelligent interface detection
+- 🔮 **Advanced ABI Discovery** - Accurate function detection through bytecode analysis for any smart contract
+- 📊 **Live State Visualization** - Real-time view of contract state variables and storage
 - 📚 **Learning Resources** - Comprehensive guides on smart contract development
 - 🧠 **AI Assistant** - Get instant answers about blockchain concepts, Solidity, and Hedera
 - 🔌 **No External Dependencies** - Everything runs in-browser with no wallet requirements
@@ -72,7 +82,7 @@ SmartScope provides an end-to-end workflow for smart contract development:
 1. **Create or Upload** - Write Solidity code in our editor or upload existing files
 2. **Compile & Analyze** - Automated compilation and security analysis
 3. **Deploy to Hedera** - One-click deployment to Hedera Testnet
-4. **Interact & Verify** - Call functions and view results in real-time
+4. **Interact & Verify** - Call functions and view results in real-time with our universal interface
 
 ## 📖 Usage Guide
 
@@ -98,15 +108,28 @@ SmartScope provides an end-to-end workflow for smart contract development:
 ### Interacting with Contracts
 
 1. Navigate to the "Interact" page and enter your contract address
-2. Select functions to call from the interface
-3. For read functions, results will display immediately
-4. For write functions, transaction details will be shown
+2. Our system automatically detects available functions through bytecode analysis
+3. View live contract state and storage values through our dynamic interface
+4. Select functions to call from the interface
+5. For read functions, results will display immediately
+6. For write functions, transaction details will be shown
 
 ### Using the AI Assistant
 
 1. Click the AI Assistant chat button in the bottom-right corner
 2. Ask questions about blockchain concepts, Solidity, or how to use SmartScope
 3. Get instant, contextual help while you develop
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the following files:
+
+- [API.md](API.md) - API documentation
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment instructions
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
+- [SECURITY.md](SECURITY.md) - Security policy and best practices
+- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
 
 ## 🛠️ Project Structure
 
@@ -131,6 +154,9 @@ SmartScope is in active development with the following roadmap:
 
 ### Current Features
 - Smart Contract Creation and Analysis
+- Dynamic Contract Interaction (supports any contract type)
+- Advanced ABI Discovery through bytecode analysis
+- Live Contract State Visualization
 - Hedera Testnet Support
 - Learning Resources
 - SmartScope AI Assistant
@@ -158,20 +184,7 @@ The SmartScope AI Assistant requires a Gemini API key to function:
 
 ## 🤝 Contributing
 
-We welcome contributions to SmartScope! Here's how you can help:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow the existing code style and naming conventions
-- Add appropriate comments for complex logic
-- Write tests for new features
-- Update documentation for changes
+We welcome contributions to SmartScope! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get started.
 
 ## 📦 Building for Production
 
@@ -190,6 +203,8 @@ yarn start
 ```
 
 ## 🚢 Deployment
+
+For deployment instructions, please refer to our [Deployment Guide](DEPLOYMENT.md).
 
 The application is set up for easy deployment on Vercel:
 
