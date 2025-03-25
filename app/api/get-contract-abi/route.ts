@@ -1,5 +1,14 @@
 import { ethers } from 'ethers';
 import { NextResponse } from 'next/server';
+import { 
+  formatToEvmAddress,
+  formatToEvmAddressAsync,
+  formatAddressForMirrorNode,
+  formatAddressForMirrorNodeAsync,
+  getContractBytecode,
+  executeJsonRpcCall,
+  contractAddressCache
+} from '../../utils/contract-utils';
 
 // Common ABIs for standard contracts
 const commonAbis: Record<string, string[]> = {
@@ -161,11 +170,14 @@ export async function POST(request: Request) {
       });
     }
     
-    // Normalize the contract address format
-    const evmAddress = convertToEvmAddress(contractAddress);
+    // Normalize the contract address format - get accurate EVM address
+    const evmAddress = await formatToEvmAddressAsync(contractAddress);
+    
+    // Format address for mirror node API using the async version
+    const mirrorNodeAddress = await formatAddressForMirrorNodeAsync(contractAddress);
     
     // First check if ABI is already available on the mirror node
-    const mirrorNodeUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${evmAddress}`;
+    const mirrorNodeUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${mirrorNodeAddress}`;
     console.log('Querying mirror node:', mirrorNodeUrl);
     
     const response = await fetch(mirrorNodeUrl);
@@ -252,7 +264,7 @@ export async function POST(request: Request) {
     // Otherwise, we'll try to determine the ABI from function calls
     // This code will only run if disableTransactionHistory is false
     // Check contract interaction history to see if we can determine functions
-    const contractResultsUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${evmAddress}/results`;
+    const contractResultsUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${mirrorNodeAddress}/results`;
     console.log('Fetching contract results:', contractResultsUrl);
     
     const resultsResponse = await fetch(contractResultsUrl);
@@ -723,33 +735,10 @@ async function detectERC721(contractAddress: string): Promise<boolean> {
  * @returns Normalized EVM address with 0x prefix
  */
 function convertToEvmAddress(contractId: string): string {
-  // If it's already a 0x-prefixed address, return it
-  if (contractId.startsWith('0x')) {
-    return contractId;
-  }
+  console.log(`Converting contract ID to EVM address: ${contractId}`);
   
-  // If it's a Hedera ID (e.g., 0.0.12345)
-  if (contractId.match(/^\d+\.\d+\.\d+$/)) {
-    try {
-      // Parse the Hedera ID
-      const parts = contractId.split('.');
-      const contractNum = parts[2];
-      
-      // Convert to hex with padding
-      const hexValue = parseInt(contractNum).toString(16).padStart(40, '0');
-      return `0x${hexValue}`;
-    } catch (conversionError) {
-      console.warn('Could not convert Hedera format to EVM address:', conversionError);
-      // Fall through to default case
-    }
-  }
-  
-  // If it's a raw hex address without 0x prefix
-  if (!contractId.startsWith('0x')) {
-    return `0x${contractId}`;
-  }
-  
-  return contractId;
+  // Use the shared utility function for consistent handling across the app
+  return formatToEvmAddress(contractId);
 }
 
 /**

@@ -39,6 +39,11 @@ import ContractStorage from './components/ContractStorage';
 
 // API utility
 import { analyzeContract } from '../../utils/api';
+import { 
+  formatToEvmAddress, 
+  formatToEvmAddressAsync, 
+  addressFormatDebugInfo 
+} from '../../utils/contract-utils';
 
 // Types
 import { ContractFunction, FunctionInput } from '../../types/contract';
@@ -108,7 +113,14 @@ const InteractPage = () => {
     try {
       // Generate a unique timestamp to prevent caching
       const timestamp = Date.now() + Math.random().toString(36).substring(2);
-      const normalizedAddress = contractAddress.trim();
+      
+      // Ensure consistent address format with accurate mapping
+      // Use the async version that will query Mirror Node for exact mapping
+      const normalizedAddress = await formatToEvmAddressAsync(contractAddress.trim());
+      
+      // Add debug info for address conversion
+      const addressDebug = addressFormatDebugInfo(contractAddress.trim());
+      console.log('Contract address debug info:', addressDebug);
       
       // Always use direct bytecode analysis
       const response = await fetch('/api/get-contract-abi', {

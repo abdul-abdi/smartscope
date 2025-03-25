@@ -1,5 +1,12 @@
 import { ethers } from 'ethers';
 import { NextResponse } from 'next/server';
+import { 
+  formatToEvmAddress, 
+  formatToEvmAddressAsync, 
+  formatAddressForMirrorNode, 
+  formatAddressForMirrorNodeAsync, 
+  contractAddressCache 
+} from '../../utils/contract-utils';
 
 // HashIO JSON-RPC endpoint for Hedera testnet
 const HASHIO_API_ENDPOINT = 'https://testnet.hashio.io/api';
@@ -590,33 +597,10 @@ async function lookupFunctionSignatures(selectors: Record<string, any>) {
  * @returns Normalized EVM address with 0x prefix
  */
 function convertToEvmAddress(contractId: string): string {
-  // If it's already a 0x-prefixed address, return it
-  if (contractId.startsWith('0x')) {
-    return contractId;
-  }
+  console.log(`Converting contract ID to EVM address: ${contractId}`);
   
-  // If it's a Hedera ID (e.g., 0.0.12345)
-  if (contractId.match(/^\d+\.\d+\.\d+$/)) {
-    try {
-      // Parse the Hedera ID
-      const parts = contractId.split('.');
-      const contractNum = parts[2];
-      
-      // Convert to hex with padding
-      const hexValue = parseInt(contractNum).toString(16).padStart(40, '0');
-      return `0x${hexValue}`;
-    } catch (conversionError) {
-      console.warn('Could not convert Hedera format to EVM address:', conversionError);
-      // Fall through to default case
-    }
-  }
-  
-  // If it's a raw hex address without 0x prefix
-  if (!contractId.startsWith('0x')) {
-    return `0x${contractId}`;
-  }
-  
-  return contractId;
+  // Use the shared utility function for consistent handling across the app
+  return formatToEvmAddress(contractId);
 }
 
 /**
@@ -701,11 +685,14 @@ export async function POST(request: Request) {
     
     console.log('Fetching bytecode for contract:', contractAddress, cacheBuster ? '(cache bypassed)' : '');
     
-    // Convert Hedera contract ID to EVM address if needed
-    const evmAddress = convertToEvmAddress(contractAddress);
+    // Get accurate EVM address through Mirror Node lookup
+    const evmAddress = await formatToEvmAddressAsync(contractAddress);
+    
+    // Format address for Mirror Node API
+    const mirrorNodeAddress = await formatAddressForMirrorNodeAsync(contractAddress);
     
     // Construct mirror node API URL
-    const mirrorNodeUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${evmAddress}`;
+    const mirrorNodeUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${mirrorNodeAddress}`;
     
     // Create a cache key for this contract
     const cacheKey = `bytecode-${evmAddress}`;

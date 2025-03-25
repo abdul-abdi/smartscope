@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { 
   formatToEvmAddress,
+  formatToEvmAddressAsync,
+  formatAddressForMirrorNode,
   getContractBytecode,
   executeJsonRpcCall
 } from '../../utils/contract-utils';
@@ -26,8 +28,13 @@ export async function POST(request: Request) {
 
     console.log(`Verifying ABI for contract: ${contractAddress}`);
     
+    // Use the async version for more accurate EVM address resolution
+    // This will check Mirror Node for exact mapping
+    const evmAddress = await formatToEvmAddressAsync(contractAddress);
+    console.log(`Using normalized EVM address for verification: ${evmAddress}`);
+    
     // Create a cache key from contract address and a hash of the ABI
-    const cacheKey = `${contractAddress}-${Buffer.from(JSON.stringify(abi)).toString('base64').substring(0, 10)}`;
+    const cacheKey = `${evmAddress}-${Buffer.from(JSON.stringify(abi)).toString('base64').substring(0, 10)}`;
     
     // Check cache first
     if (verificationCache.has(cacheKey)) {
@@ -36,7 +43,7 @@ export async function POST(request: Request) {
     }
     
     // Get contract bytecode for verification
-    const bytecode = await getContractBytecode(contractAddress);
+    const bytecode = await getContractBytecode(evmAddress);
     
     if (!bytecode || bytecode === '0x') {
       return NextResponse.json({ 
@@ -51,7 +58,7 @@ export async function POST(request: Request) {
     // Array to hold verification results
     const verificationResults = await Promise.all(
       functionsToVerify.map(async (func) => {
-        const result = await verifyFunction(contractAddress, func, bytecode);
+        const result = await verifyFunction(evmAddress, func, bytecode);
         return {
           ...func,
           verified: result.exists,

@@ -7,18 +7,187 @@ export const HASHIO_API_ENDPOINT = 'https://testnet.hashio.io/api';
 export const MIRROR_NODE_TESTNET = 'https://testnet.mirrornode.hedera.com/api/v1';
 export const MIRROR_NODE_MAINNET = 'https://mainnet-public.mirrornode.hedera.com/api/v1';
 
+// Cache for contract ID to EVM address mappings to avoid repeated API calls
+export const contractAddressCache = new Map<string, string>();
+
+/**
+ * Dynamically fetch the EVM address for a Hedera contract ID using Mirror Node
+ * @param contractId Contract ID in Hedera format (0.0.X)
+ * @returns Promise with the EVM address with 0x prefix
+ */
+export async function fetchEvmAddressFromMirrorNode(contractId: string): Promise<string> {
+  // Check cache first
+  if (contractAddressCache.has(contractId)) {
+    console.log(`Using cached EVM address for ${contractId}: ${contractAddressCache.get(contractId)}`);
+    return contractAddressCache.get(contractId)!;
+  }
+
+  try {
+    console.log(`Fetching EVM address for contract ID ${contractId} from Mirror Node`);
+    
+    // Define the Mirror Node API URL - default to testnet
+    const baseUrl = MIRROR_NODE_TESTNET;
+    
+    // Make a direct request to Mirror Node for the contract info
+    // No need to remove 0x prefix here since we're querying with contract ID
+    const mirrorNodeUrl = `${baseUrl}/contracts/${contractId}`;
+    console.log('Mirror Node URL:', mirrorNodeUrl);
+    
+    const response = await fetch(mirrorNodeUrl);
+    if (!response.ok) {
+      throw new Error(`Mirror Node request failed with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Extract the EVM address from the response
+    if (data.evm_address) {
+      // Ensure 0x prefix
+      const evmAddress = data.evm_address.startsWith('0x') 
+        ? data.evm_address 
+        : `0x${data.evm_address}`;
+      
+      console.log(`Retrieved EVM address ${evmAddress} for contract ID ${contractId}`);
+      
+      // Cache the result
+      contractAddressCache.set(contractId, evmAddress);
+      
+      return evmAddress;
+    } else {
+      throw new Error(`No EVM address found for contract ID ${contractId}`);
+    }
+  } catch (error: any) {
+    console.error(`Error fetching EVM address for ${contractId}:`, error.message);
+    throw error;
+  }
+}
+
 /**
  * Converts any contract address format to EVM format
  * Handles both Hedera (0.0.X) and EVM formats
+ * Uses async Mirror Node lookup for accurate conversions
  */
-export function formatToEvmAddress(contractAddress: string): string {
+export async function formatToEvmAddressAsync(contractAddress: string): Promise<string> {
   try {
+    // Log the input for debugging
+    console.log('Formatting contract address or ID to EVM format (async):', contractAddress);
+
+    // Handle null or undefined input
+    if (!contractAddress) {
+      console.warn('Empty contract address provided');
+      return '0x0000000000000000000000000000000000000000';
+    }
+
     // If already starts with 0x, ensure it doesn't have double prefix
     if (contractAddress.startsWith('0x')) {
       // Remove any duplicate 0x prefix (like "0x0x...")
       if (contractAddress.startsWith('0x0x')) {
-        return '0x' + contractAddress.substring(4);
+        const formattedAddress = '0x' + contractAddress.substring(4);
+        console.log('Removed duplicate 0x prefix:', formattedAddress);
+        return formattedAddress;
       }
+      
+      // Ensure full EVM address length (0x + 40 chars)
+      if (contractAddress.length < 42) {
+        const paddedAddress = '0x' + contractAddress.substring(2).padStart(40, '0');
+        console.log('Padded short EVM address:', paddedAddress);
+        return paddedAddress;
+      }
+      
+      console.log('Using existing EVM address:', contractAddress);
+      return contractAddress;
+    }
+    
+    // For shard.realm.num format
+    if (contractAddress.includes('.')) {
+      const parts = contractAddress.split('.');
+      // If we have a valid Hedera ID format, use Mirror Node to get the accurate mapping
+      if (parts.length === 3) {
+        try {
+          // Use Mirror Node API to get the correct EVM address
+          const evmAddress = await fetchEvmAddressFromMirrorNode(contractAddress);
+          console.log('Retrieved EVM address from Mirror Node:', evmAddress);
+          return evmAddress;
+        } catch (lookupError) {
+          // If Mirror Node lookup fails, fall back to our simple conversion
+          console.warn('Mirror Node lookup failed, using fallback conversion');
+          const formattedAddress = '0x' + parts[2].padStart(40, '0');
+          console.log('Fallback conversion of Hedera ID to EVM address:', formattedAddress);
+          return formattedAddress;
+        }
+      }
+    }
+    
+    // For numeric format without dots (contract ID without shard/realm)
+    if (/^\d+$/.test(contractAddress)) {
+      try {
+        // Try looking up the full ID with shard.realm.num format
+        const fullId = `0.0.${contractAddress}`;
+        const evmAddress = await fetchEvmAddressFromMirrorNode(fullId);
+        console.log('Retrieved EVM address from Mirror Node for numeric ID:', evmAddress);
+        return evmAddress;
+      } catch (lookupError) {
+        // If Mirror Node lookup fails, fall back to our simple conversion
+        console.warn('Mirror Node lookup failed for numeric ID, using fallback conversion');
+        const formattedAddress = '0x' + contractAddress.padStart(40, '0');
+        console.log('Fallback conversion of numeric ID to EVM address:', formattedAddress);
+        return formattedAddress;
+      }
+    }
+    
+    // Default: assume it's a valid address without 0x prefix
+    const formattedAddress = '0x' + contractAddress;
+    console.log('Added 0x prefix to address:', formattedAddress);
+    return formattedAddress;
+  } catch (error) {
+    console.error('Error formatting to EVM address (async):', error);
+    // Return as-is with 0x prefix as a fallback
+    const fallbackAddress = contractAddress.startsWith('0x') ? contractAddress : '0x' + contractAddress;
+    console.log('Using fallback address format (async):', fallbackAddress);
+    return fallbackAddress;
+  }
+}
+
+/**
+ * Converts any contract address format to EVM format
+ * Handles both Hedera (0.0.X) and EVM formats
+ * This is the synchronous version that uses best-effort conversion
+ */
+export function formatToEvmAddress(contractAddress: string): string {
+  try {
+    // Log the input for debugging
+    console.log('Formatting contract address or ID to EVM format:', contractAddress);
+
+    // Handle null or undefined input
+    if (!contractAddress) {
+      console.warn('Empty contract address provided');
+      return '0x0000000000000000000000000000000000000000';
+    }
+
+    // Check if we have a cached mapping for this address
+    if (contractAddress.includes('.') && contractAddressCache.has(contractAddress)) {
+      const cachedAddress = contractAddressCache.get(contractAddress)!;
+      console.log(`Using cached EVM address for ${contractAddress}: ${cachedAddress}`);
+      return cachedAddress;
+    }
+
+    // If already starts with 0x, ensure it doesn't have double prefix
+    if (contractAddress.startsWith('0x')) {
+      // Remove any duplicate 0x prefix (like "0x0x...")
+      if (contractAddress.startsWith('0x0x')) {
+        const formattedAddress = '0x' + contractAddress.substring(4);
+        console.log('Removed duplicate 0x prefix:', formattedAddress);
+        return formattedAddress;
+      }
+      
+      // Ensure full EVM address length (0x + 40 chars)
+      if (contractAddress.length < 42) {
+        const paddedAddress = '0x' + contractAddress.substring(2).padStart(40, '0');
+        console.log('Padded short EVM address:', paddedAddress);
+        return paddedAddress;
+      }
+      
+      console.log('Using existing EVM address:', contractAddress);
       return contractAddress;
     }
     
@@ -28,21 +197,52 @@ export function formatToEvmAddress(contractAddress: string): string {
       // If we have a valid Hedera ID format
       if (parts.length === 3) {
         // Create EVM address with proper padding
-        return '0x' + parts[2].padStart(40, '0');
+        const formattedAddress = '0x' + parts[2].padStart(40, '0');
+        console.log('Converted Hedera ID to EVM address:', formattedAddress);
+        
+        // Trigger an async lookup for future use, but don't wait for it
+        fetchEvmAddressFromMirrorNode(contractAddress)
+          .then(actualAddress => {
+            if (actualAddress !== formattedAddress) {
+              console.log(`Updating cache with correct EVM address for ${contractAddress}: ${actualAddress}`);
+              contractAddressCache.set(contractAddress, actualAddress);
+            }
+          })
+          .catch(err => console.warn('Background Mirror Node lookup failed:', err));
+        
+        return formattedAddress;
       }
     }
     
-    // For numeric format without dots
+    // For numeric format without dots (contract ID without shard/realm)
     if (/^\d+$/.test(contractAddress)) {
-      return '0x' + contractAddress.padStart(40, '0');
+      const formattedAddress = '0x' + contractAddress.padStart(40, '0');
+      console.log('Converted numeric ID to EVM address:', formattedAddress);
+      
+      // Trigger an async lookup for future use, but don't wait for it
+      const fullId = `0.0.${contractAddress}`;
+      fetchEvmAddressFromMirrorNode(fullId)
+        .then(actualAddress => {
+          if (actualAddress !== formattedAddress) {
+            console.log(`Updating cache with correct EVM address for ${fullId}: ${actualAddress}`);
+            contractAddressCache.set(fullId, actualAddress);
+          }
+        })
+        .catch(err => console.warn('Background Mirror Node lookup failed:', err));
+      
+      return formattedAddress;
     }
     
     // Default: assume it's a valid address without 0x prefix
-    return '0x' + contractAddress;
+    const formattedAddress = '0x' + contractAddress;
+    console.log('Added 0x prefix to address:', formattedAddress);
+    return formattedAddress;
   } catch (error) {
     console.error('Error formatting to EVM address:', error);
     // Return as-is with 0x prefix as a fallback
-    return contractAddress.startsWith('0x') ? contractAddress : '0x' + contractAddress;
+    const fallbackAddress = contractAddress.startsWith('0x') ? contractAddress : '0x' + contractAddress;
+    console.log('Using fallback address format:', fallbackAddress);
+    return fallbackAddress;
   }
 }
 
@@ -260,5 +460,158 @@ export function formatOutputResult(result: any, outputs: any[]): any {
   } catch (error) {
     console.warn('Error formatting output result:', error);
     return result;
+  }
+}
+
+/**
+ * Converts between Hedera ID format and EVM address format
+ * Useful for debugging address format issues
+ * @param address Either a Hedera ID (0.0.X) or EVM address (0x...)
+ * @returns Object containing both formats
+ */
+export function addressFormatDebugInfo(address: string): { 
+  originalInput: string;
+  evmFormat: string;
+  hederaIdFormat: string | null;
+  isValidEvm: boolean;
+  conversionMethod: string;
+} {
+  const result = {
+    originalInput: address,
+    evmFormat: '',
+    hederaIdFormat: null as string | null,
+    isValidEvm: false,
+    conversionMethod: ''
+  };
+
+  try {
+    // First convert to EVM format
+    result.evmFormat = formatToEvmAddress(address);
+    
+    // Check if it's a valid EVM address
+    result.isValidEvm = /^0x[0-9a-fA-F]{40}$/.test(result.evmFormat);
+    
+    // Try to determine Hedera ID format if possible
+    if (result.isValidEvm) {
+      const numericPart = result.evmFormat.substring(2).replace(/^0+/, '');
+      if (numericPart.length > 0) {
+        // This is an approximate conversion - assumes shard.realm is 0.0
+        // Would need to check mirror node for exact mapping
+        result.hederaIdFormat = `0.0.${parseInt(numericPart, 16)}`;
+        result.conversionMethod = 'Converted from EVM address';
+      }
+    }
+    
+    // If we started with a Hedera ID format
+    if (address.includes('.')) {
+      const parts = address.split('.');
+      if (parts.length === 3) {
+        result.hederaIdFormat = address;
+        result.conversionMethod = 'Original input was Hedera ID';
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error in addressFormatDebugInfo:', error);
+    result.conversionMethod = 'Error during conversion';
+    result.evmFormat = address.startsWith('0x') ? address : '0x' + address;
+    return result;
+  }
+}
+
+/**
+ * Formats an address specifically for Hedera Mirror Node API calls
+ * Mirror Node API expects addresses without the 0x prefix
+ * @param address Any contract address format
+ * @returns Address formatted for Mirror Node API (without 0x prefix)
+ */
+export function formatAddressForMirrorNode(address: string): string {
+  // First ensure it's in EVM format using the synchronous version
+  // This is fine because this function is typically used in APIs
+  // where we already have a validated address
+  const evmAddress = formatToEvmAddress(address);
+  
+  // Check if we're dealing with a contract ID that might have been mapped differently
+  const debugLookup = {
+    original: address,
+    evmFormatted: evmAddress
+  };
+  
+  // Check if we have a cached mapping for this address
+  if (address.includes('.') && contractAddressCache.has(address)) {
+    const cachedEvmAddress = contractAddressCache.get(address)!;
+    debugLookup['cachedEvmAddress'] = cachedEvmAddress;
+    
+    // Then remove the 0x prefix which Mirror Node API doesn't expect
+    const mirrorNodeAddress = cachedEvmAddress.startsWith('0x') 
+      ? cachedEvmAddress.substring(2) 
+      : cachedEvmAddress;
+    
+    debugLookup['mirrorNodeFormatted'] = mirrorNodeAddress;
+    console.log('Using cached address for Mirror Node API:', debugLookup);
+    return mirrorNodeAddress;
+  }
+  
+  // Then remove the 0x prefix which Mirror Node API doesn't expect
+  const mirrorNodeAddress = evmAddress.startsWith('0x') ? evmAddress.substring(2) : evmAddress;
+  
+  debugLookup['mirrorNodeFormatted'] = mirrorNodeAddress;
+  
+  // Trigger an async lookup for future use, but don't wait for it
+  if (address.includes('.')) {
+    console.log(`Mirror Node Debug: Scheduling background lookup for ${address}`);
+    
+    fetchEvmAddressFromMirrorNode(address)
+      .then(actualAddress => {
+        // Store without 0x prefix for mirror node
+        const actualMirrorNodeAddress = actualAddress.startsWith('0x') 
+          ? actualAddress.substring(2) 
+          : actualAddress;
+        
+        if (actualMirrorNodeAddress !== mirrorNodeAddress) {
+          console.log(`Address cache updated - ${address} maps to ${actualAddress}`);
+        }
+      })
+      .catch(err => console.warn('Background Mirror Node lookup failed:', err));
+  }
+  
+  console.log('Formatted address for Mirror Node API:', debugLookup);
+  
+  return mirrorNodeAddress;
+}
+
+/**
+ * Async version of formatAddressForMirrorNode that performs a Mirror Node lookup
+ * @param address Any contract address format
+ * @returns Promise with address formatted for Mirror Node API (without 0x prefix)
+ */
+export async function formatAddressForMirrorNodeAsync(address: string): Promise<string> {
+  try {
+    // For contract IDs, do a lookup to get the proper mapping
+    if (address.includes('.')) {
+      // Get the accurate EVM address
+      const evmAddress = await formatToEvmAddressAsync(address);
+      
+      // Remove 0x prefix for Mirror Node API
+      const mirrorNodeAddress = evmAddress.startsWith('0x') 
+        ? evmAddress.substring(2) 
+        : evmAddress;
+      
+      console.log(`Async formatted address for Mirror Node API: ${mirrorNodeAddress} (from ${address})`);
+      return mirrorNodeAddress;
+    }
+    
+    // For EVM addresses, just remove the 0x prefix
+    if (address.startsWith('0x')) {
+      return address.substring(2);
+    }
+    
+    // If it's already without prefix, return as-is
+    return address;
+  } catch (error) {
+    console.error('Error in formatAddressForMirrorNodeAsync:', error);
+    // Fallback to the sync version
+    return formatAddressForMirrorNode(address);
   }
 } 

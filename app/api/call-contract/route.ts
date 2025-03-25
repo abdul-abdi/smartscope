@@ -16,9 +16,12 @@ import {
 } from '../../utils/hedera';
 import { 
   formatToEvmAddress,
+  formatToEvmAddressAsync,
+  addressFormatDebugInfo,
   getContractInfoFromMirrorNode,
   executeJsonRpcCall,
-  formatOutputResult
+  formatOutputResult,
+  encodeFunctionCall
 } from '../../utils/contract-utils';
 import {
   analyzeContractCallResult,
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
       includeCallTrace = true
     } = await request.json();
 
+    // Use a consistent prefix for all logs from this endpoint
     const logPrefix = requestId ? `[${requestId}] ` : '';
 
     if (!contractAddress) {
@@ -57,12 +61,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Function name is required' }, { status: 400 });
     }
     
-    // Format contract address to EVM format for JSON-RPC
-    let evmAddress = formatToEvmAddress(contractAddress);
-    let contractId = contractAddress;
-    let mirrorNodeData = null;
-
+    console.log(`${logPrefix}Received call request`);
+    
+    // Ensure we have a properly formatted EVM address
+    // Use the async version that will query Mirror Node for exact mapping
+    let evmAddress = await formatToEvmAddressAsync(contractAddress);
+    
+    // Log debug information about address format
+    const addressDebug = addressFormatDebugInfo(contractAddress);
+    console.log(`${logPrefix}Address debug info:`, addressDebug);
+    
     console.log(`${logPrefix}Using EVM address: ${evmAddress}`);
+
+    // Validate contract exists on Hedera
+    let contractValidated = false;
+    let mirrorNodeData = null;
 
     // First, try to get contract info from mirror node to validate it exists
     try {
@@ -70,7 +83,7 @@ export async function POST(request: Request) {
       console.log(`${logPrefix}Contract exists with ID:`, mirrorNodeData.contract_id);
       
       // Store the contract ID for SDK calls if needed
-      contractId = mirrorNodeData.contract_id;
+      contractValidated = true;
       
       // Store the EVM address for JSON-RPC calls
       if (mirrorNodeData.evm_address) {
@@ -445,7 +458,7 @@ export async function POST(request: Request) {
         console.log(`${logPrefix}Executing contract transaction via Hedera SDK with params:`, hederaParams);
         
         const txResult = await executeContractTransaction(
-          contractId,
+          contractAddress,
           functionName,
           hederaParams,
           operatorId,
@@ -461,7 +474,7 @@ export async function POST(request: Request) {
           executionMethod: 'hedera-sdk',
           executionTrace: {
             functionName,
-            contractId,
+            contractId: contractAddress,
             parameters: hederaParams,
             callType: 'ContractExecuteTransaction'
           }
@@ -679,7 +692,7 @@ function encodeFunctionSignature(functionName: string, parameters: any[]): strin
  * Execute a contract transaction using the Hedera SDK
  */
 async function executeContractTransaction(
-  contractId: string,
+  contractAddress: string,
   functionName: string,
   parameters: Array<{ type: string; value: any }>,
   operatorId: string,
@@ -687,7 +700,7 @@ async function executeContractTransaction(
 ): Promise<string> {
   try {
     console.log('Executing contract transaction via Hedera SDK');
-    console.log('Contract ID:', contractId);
+    console.log('Contract ID:', contractAddress);
     console.log('Function:', functionName);
     console.log('Parameters:', parameters);
     
@@ -695,7 +708,7 @@ async function executeContractTransaction(
     const client = await initializeClient(operatorId, operatorKey);
     
     // Format the contract ID correctly for the SDK
-    const formattedContractId = formatContractId(contractId);
+    const formattedContractId = formatContractId(contractAddress);
     
     // Build the function parameters
     const functionParams = new ContractFunctionParameters();

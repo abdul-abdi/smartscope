@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { NextResponse } from 'next/server';
 import { 
   formatToEvmAddress, 
+  formatToEvmAddressAsync,
   getContractBytecode 
 } from '../../utils/contract-utils';
 
@@ -16,7 +17,9 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    console.log(`Verifying function existence: ${functionName}(${inputTypes?.join(',') || ''}) in contract ${contractAddress}`);
+    // Use the async version for more accurate EVM address resolution
+    const evmAddress = await formatToEvmAddressAsync(contractAddress);
+    console.log(`Verifying function existence: ${functionName}(${inputTypes?.join(',') || ''}) in contract ${evmAddress}`);
     
     // Build the function signature and get its selector
     const inputTypesString = inputTypes ? inputTypes.join(',') : '';
@@ -28,7 +31,7 @@ export async function POST(request: Request) {
 
     try {
       // Get contract bytecode using our shared utility function
-      const bytecode = await getContractBytecode(contractAddress);
+      const bytecode = await getContractBytecode(evmAddress);
       
       if (!bytecode || bytecode === '0x') {
         return NextResponse.json({ 
