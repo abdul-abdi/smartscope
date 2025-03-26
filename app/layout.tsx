@@ -57,14 +57,18 @@ export default function RootLayout({
         <meta name="theme-color" content="#7c3aed" />
       </head>
       <body>
-        <AppProvider>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
-          <AIAssistant />
-        </AppProvider>
+        <ThemeProvider defaultTheme="system">
+          <AppProvider>
+            <ToastProvider>
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow">{children}</main>
+                <Footer />
+              </div>
+              <AIAssistant />
+            </ToastProvider>
+          </AppProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
