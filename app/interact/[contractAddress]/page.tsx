@@ -36,6 +36,7 @@ import ContractAnalysisCard from './components/ContractAnalysisCard';
 import ContractTransactionDetails from './components/ContractTransactionDetails';
 import FunctionHistory from './components/FunctionHistory';
 import ContractStorage from './components/ContractStorage';
+import AbiModal from './components/AbiModal';
 
 // API utility
 import { analyzeContract } from '../../utils/api';
@@ -101,6 +102,7 @@ const InteractPage = () => {
     result: any;
     timestamp: number;
   }>>([]);
+  const [isAbiModalOpen, setIsAbiModalOpen] = useState(false);
 
   // Function to fetch the ABI for a contract - make it a useCallback
   const fetchAbi = useCallback(async () => {
@@ -939,6 +941,7 @@ const InteractPage = () => {
           contractAddress={contractAddress} 
           abiSource={abiSource}
           functionsCount={functions.length}
+          onViewAbi={() => setIsAbiModalOpen(true)}
         />
       </motion.div>
 
@@ -1317,6 +1320,13 @@ const InteractPage = () => {
           )}
         </>
       )}
+
+      <AbiModal 
+        isOpen={isAbiModalOpen}
+        onClose={() => setIsAbiModalOpen(false)}
+        abi={abi}
+        contractAddress={contractAddress}
+      />
     </motion.div>
   );
 };

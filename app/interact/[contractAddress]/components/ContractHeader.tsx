@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
-import { ArrowLeft, Copy, CheckCircle, ExternalLink, FileCode, Terminal } from 'lucide-react';
+import { ArrowLeft, Copy, CheckCircle, ExternalLink, FileCode, Terminal, Code } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../../components/ui/tooltip';
 import { Badge } from '../../../../components/ui/badge';
 
@@ -9,12 +9,14 @@ export interface ContractHeaderProps {
   contractAddress: string;
   abiSource?: string;
   functionsCount?: number;
+  onViewAbi?: () => void;
 }
 
 const ContractHeader: React.FC<ContractHeaderProps> = ({ 
   contractAddress,
   abiSource,
-  functionsCount = 0
+  functionsCount = 0,
+  onViewAbi
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -84,6 +86,18 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          
+          {onViewAbi && (
+            <Button 
+              variant="default"
+              size="sm"
+              className="h-9 px-3 rounded-none border-l border-border/40 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white"
+              onClick={onViewAbi}
+            >
+              <Code className="h-4 w-4" />
+              <span>View ABI</span>
+            </Button>
+          )}
         </div>
       </div>
       
