@@ -159,7 +159,7 @@ function configureMonaco(monaco) {
       '^=', '%=', '<<=', '>>=', '=>'
     ],
 
-    symbols: /[=><!~?:&|+\-*\/\^%]+/,
+    symbols: /[=><!~?:&|+\-*\/%]+/,
     escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
     integersuffix: /(ll|LL|u|U|l|L)?(ll|LL|u|U|l|L)?/,
     floatsuffix: /[fFlL]?/,
@@ -450,7 +450,7 @@ const CreateContractPage = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [contractCode, autoValidate]);
+  }, [contractCode, autoValidate]); // Remove updateEditorDecorations from dependency array
 
   // Update handleSampleChange to be async
   const handleSampleChange = async (value: string) => {
@@ -954,7 +954,7 @@ const CreateContractPage = () => {
     }
     
     // Check for state changes after external calls (violates checks-effects-interactions)
-    const stateAfterCallRegex = /\.call\([^;]*;\s*[^\/]*\s*[a-zA-Z0-9_\[\]]+\s*=[^=]/;
+    const stateAfterCallRegex = /\.call\([^;]*;\s*[^/]*\s*[a-zA-Z0-9_[\]]+\s*=[^=]/;
     if (stateAfterCallRegex.test(code)) {
       warnings.push('State changes detected after external calls. This violates the checks-effects-interactions pattern and may lead to reentrancy vulnerabilities.');
       securityScore -= 20; // Critical security issue
@@ -985,8 +985,8 @@ const CreateContractPage = () => {
     for (const match of matches) {
       const forLoop = match[0];
       // Check if loop has no upper bound in the condition part
-      if (!/;\s*[a-zA-Z0-9_\[\]]+\s*<[^;]*;/.test(forLoop) && 
-          !/;\s*[a-zA-Z0-9_\[\]]+\s*<=[^;]*;/.test(forLoop)) {
+      if (!/;\s*[a-zA-Z0-9_[\]]+\s*<[^;]*;/.test(forLoop) && 
+          !/;\s*[a-zA-Z0-9_[\]]+\s*<=[^;]*;/.test(forLoop)) {
         warnings.push('Potentially unbounded loop detected. Ensure all loops have a clear upper bound to prevent DoS attacks.');
         securityScore -= 15;
         break; // Only penalize once for this issue
@@ -1007,7 +1007,7 @@ const CreateContractPage = () => {
     }
     
     // Check for floating pragma vs fixed pragma
-    const pragmaRegex = /pragma\s+solidity\s+(?:\^|>|>=|<|<=)/;
+    const pragmaRegex = /pragma\s+solidity\s+(\^|>|>=|<|<=)/;
     const fixedPragmaRegex = /pragma\s+solidity\s+(\d+\.\d+\.\d+|\d+\.\d+)/;
     if (fixedPragmaRegex.test(code)) {
       warnings.push('Fixed pragma version detected. Consider using a carat (^) prefix for better compatibility with newer compiler versions.');
@@ -1018,7 +1018,7 @@ const CreateContractPage = () => {
     }
     
     // Check for outdated Solidity version
-    const oldVersionRegex = /pragma\s+solidity\s+(?:\^|>|>=|<|<=)\s*0\.[1-7]\.\d+/;
+    const oldVersionRegex = /pragma\s+solidity\s+(\^|>|>=|<|<=)\s*0\.[1-7]\.\d+/;
     if (oldVersionRegex.test(code)) {
       warnings.push('Outdated Solidity version detected. Consider using version 0.8.0 or later for built-in overflow protection and better security features.');
       securityScore -= 15;
