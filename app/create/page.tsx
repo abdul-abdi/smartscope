@@ -39,6 +39,9 @@ const CreateContractPage = () => {
     stage: string;
     progress: number;
   } | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [securityScore, setSecurityScore] = useState<number>(100);
+  const [validationResults, setValidationResults] = useState<{ errors: string[], warnings: string[], securityScore: number } | null>(null);
 
   useEffect(() => {
     // Set default sample contract
@@ -85,16 +88,50 @@ const CreateContractPage = () => {
     }
   };
 
+  const handleValidate = () => {
+    if (!contractCode.trim()) {
+      setError('Please enter contract code first');
+      return;
+    }
+    
+    // Clear previous validation and errors
+    setError('');
+    setWarnings([]);
+    setSecurityScore(100);
+    
+    // Run the validation
+    const results = validateContractCode(contractCode);
+    setValidationResults(results);
+    
+    // Update the UI based on validation results
+    if (results.errors.length > 0) {
+      setError(`Contract validation failed: ${results.errors[0]}`);
+    }
+    
+    if (results.warnings.length > 0) {
+      setWarnings(results.warnings);
+      setSecurityScore(results.securityScore);
+    }
+  };
+
   const handleCompile = async () => {
     if (!contractCode.trim()) {
       setError('Please enter contract code first');
       return;
     }
 
+    // First validate the contract
+    handleValidate();
+    
+    // If there are validation errors, don't proceed with compilation
+    if (validationResults && validationResults.errors.length > 0) {
+      return;
+    }
+    
     setIsCompiling(true);
-    setError('');
     
     try {
+      // Proceed with actual compilation
       const result = await compileContract(contractCode);
       setCompilationResult(result);
     } catch (err: any) {
@@ -102,6 +139,232 @@ const CreateContractPage = () => {
     } finally {
       setIsCompiling(false);
     }
+  };
+
+  // Add a comprehensive validation function for Solidity contracts
+  const validateContractCode = (code: string): { errors: string[], warnings: string[], securityScore: number } => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    let securityScore = 100; // Start with perfect score
+    
+    // Check if code contains a contract definition
+    if (!code.includes('contract ')) {
+      errors.push('No contract definition found');
+    }
+    
+    // Check for pragma directive
+    if (!code.includes('pragma solidity')) {
+      errors.push('Missing pragma solidity directive');
+    }
+    
+    // Check for balanced braces
+    const openBraces = (code.match(/{/g) || []).length;
+    const closeBraces = (code.match(/}/g) || []).length;
+    if (openBraces !== closeBraces) {
+      errors.push(`Unbalanced braces: ${openBraces} opening vs ${closeBraces} closing`);
+    }
+    
+    // Check for balanced parentheses
+    const openParens = (code.match(/\(/g) || []).length;
+    const closeParens = (code.match(/\)/g) || []).length;
+    if (openParens !== closeParens) {
+      errors.push(`Unbalanced parentheses: ${openParens} opening vs ${closeParens} closing`);
+    }
+    
+    // Check for semicolons
+    const lines = code.split('\n');
+    const codeLines = lines.filter(line => 
+      line.trim() && 
+      !line.trim().startsWith('//') && 
+      !line.trim().startsWith('/*') &&
+      !line.trim().startsWith('*') &&
+      !line.trim().endsWith('{') &&
+      !line.trim().endsWith('}') &&
+      !line.trim().startsWith('pragma') &&
+      !line.trim().startsWith('import')
+    );
+    
+    const missingSemicolons = codeLines.filter(line => 
+      !line.trim().endsWith(';') && 
+      !line.trim().endsWith('{') && 
+      !line.trim().endsWith('}') &&
+      !line.trim().endsWith('*/') &&
+      !line.trim().startsWith('function')
+    );
+    
+    if (missingSemicolons.length > 0) {
+      warnings.push(`Possible missing semicolons in ${missingSemicolons.length} lines`);
+      securityScore -= 5; // Minor issue
+    }
+    
+    // Security check: Reentrancy vulnerability
+    if (code.includes('.call{value:') && !code.includes('ReentrancyGuard')) {
+      warnings.push('Potential reentrancy vulnerability detected with .call{value:}. Consider using ReentrancyGuard or checks-effects-interactions pattern.');
+      securityScore -= 20; // Major security issue
+    }
+    
+    // Security check: Unchecked external calls
+    if ((code.includes('.call(') || code.includes('.delegatecall(')) && !code.includes('require(success')) {
+      warnings.push('Unchecked external call result detected. Make sure to check return values of low-level calls.');
+      securityScore -= 15; // Significant security issue
+    }
+    
+    // Gas optimization: Avoid expensive operations in loops
+    const loopStorage = /for\s*\([^)]*\)\s*{[^}]*storage/i;
+    if (loopStorage.test(code)) {
+      warnings.push('Storage access in loops detected. This can be gas-intensive, consider caching storage variables outside loops.');
+      securityScore -= 10; // Performance issue
+    }
+    
+    // Check for visibility modifiers
+    const functionDefRegex = /function\s+\w+\s*\([^)]*\)(?:\s+\w+)*(?!\s+(?:public|private|internal|external))/g;
+    if (code.match(functionDefRegex)) {
+      warnings.push('Functions missing visibility modifiers (public, private, internal, external) detected.');
+      securityScore -= 10; // Security best practice issue
+    }
+    
+    // Check for floating pragma
+    const pragmaRegex = /pragma\s+solidity\s+(?:\^|>|>=|<|<=)/;
+    if (pragmaRegex.test(code)) {
+      warnings.push('Floating pragma detected. Consider using a fixed compiler version for production.');
+      securityScore -= 5; // Minor issue
+    }
+    
+    // Check for common typos
+    if (code.includes('selfdestruct')) {
+      warnings.push('Use of selfdestruct detected, which will be deprecated in future Solidity versions.');
+      securityScore -= 5; // Minor issue
+    }
+    
+    // Check for tx.origin usage
+    if (code.includes('tx.origin')) {
+      warnings.push('Use of tx.origin detected, which can lead to phishing attacks. Consider using msg.sender instead.');
+      securityScore -= 15; // Significant security issue
+    }
+    
+    // Check for use of block.timestamp
+    if (code.includes('block.timestamp')) {
+      warnings.push('Use of block.timestamp detected. Be aware that miners can manipulate it slightly.');
+      securityScore -= 5; // Minor issue
+    }
+    
+    // Check contract size (Hedera has size limits)
+    if (code.length > 24576) {  // 24KB is approaching risky territory
+      warnings.push('Contract code is very large and may exceed deployment size limits on Hedera.');
+      securityScore -= 10; // Deployment risk
+    }
+    
+    // Check for unbounded loops which could lead to DoS
+    if (code.includes('while') || /for\s*\([^)]*\)\s*[^{]*{/.test(code)) {
+      // Check if there's no clear bound
+      const hasUnboundedLoop = /for\s*\([^)]*;\s*;\s*[^)]*\)/.test(code) || 
+                              /while\s*\([^)]*true[^)]*\)/.test(code);
+      if (hasUnboundedLoop) {
+        warnings.push('Potentially unbounded loop detected which could lead to DoS attacks or excessive gas usage.');
+        securityScore -= 15; // Significant security issue
+      }
+    }
+    
+    // Check for integer overflow/underflow in older Solidity versions
+    if (!code.includes('pragma solidity ^0.8') && !code.includes('SafeMath')) {
+      warnings.push('Contract may be vulnerable to integer overflow/underflow. Use Solidity 0.8.x or SafeMath library.');
+      securityScore -= 15; // Significant security issue
+    }
+    
+    // Ensure security score doesn't go below 0
+    securityScore = Math.max(0, securityScore);
+    
+    return { errors, warnings, securityScore };
+  };
+
+  // Create a helper function to get detailed information about warnings
+  const getWarningInfo = (warning: string): { description: string, severity: 'high' | 'medium' | 'low', fix: string } => {
+    if (warning.includes('Reentrancy vulnerability')) {
+      return {
+        description: 'Reentrancy allows attackers to repeatedly call your contract before the first execution is complete.',
+        severity: 'high',
+        fix: 'Use the ReentrancyGuard modifier or follow checks-effects-interactions pattern.'
+      };
+    }
+    
+    if (warning.includes('Unchecked external call')) {
+      return {
+        description: 'Low-level calls can fail silently if their return value is not checked.',
+        severity: 'high',
+        fix: 'Add a require statement to check the success value: require(success, "Call failed");'
+      };
+    }
+    
+    if (warning.includes('Storage access in loops')) {
+      return {
+        description: 'Reading or writing to storage in loops is gas-intensive and can lead to high transaction costs.',
+        severity: 'medium',
+        fix: 'Cache storage variables in memory before the loop and write back after.'
+      };
+    }
+    
+    if (warning.includes('visibility modifiers')) {
+      return {
+        description: 'Functions without visibility modifiers default to public, which may expose functionality unintentionally.',
+        severity: 'medium',
+        fix: 'Add explicit visibility modifiers (public, private, internal, external) to all functions.'
+      };
+    }
+    
+    if (warning.includes('tx.origin')) {
+      return {
+        description: 'tx.origin is vulnerable to phishing attacks since it contains the original sender of the transaction.',
+        severity: 'high',
+        fix: 'Use msg.sender instead of tx.origin for authentication.'
+      };
+    }
+    
+    if (warning.includes('Floating pragma')) {
+      return {
+        description: 'Using a floating pragma allows the contract to be compiled with different compiler versions, which may introduce bugs or vulnerabilities.',
+        severity: 'low',
+        fix: 'Use a fixed pragma version like "pragma solidity 0.8.17;" instead of "pragma solidity ^0.8.17;"'
+      };
+    }
+    
+    if (warning.includes('selfdestruct')) {
+      return {
+        description: 'selfdestruct will be deprecated in future Solidity versions.',
+        severity: 'low',
+        fix: 'Consider alternative designs that don\'t rely on selfdestruct.'
+      };
+    }
+    
+    if (warning.includes('block.timestamp')) {
+      return {
+        description: 'Miners can manipulate block.timestamp within a small window, potentially affecting time-sensitive logic.',
+        severity: 'low',
+        fix: 'Don\'t rely on block.timestamp for critical security decisions or random number generation.'
+      };
+    }
+    
+    if (warning.includes('unbounded loop')) {
+      return {
+        description: 'Loops without clear bounds can consume excessive gas or lead to denial of service attacks.',
+        severity: 'high',
+        fix: 'Add explicit upper bounds to loops and consider pagination for large data sets.'
+      };
+    }
+    
+    if (warning.includes('integer overflow/underflow')) {
+      return {
+        description: 'Arithmetic operations can overflow or underflow, leading to unexpected behavior.',
+        severity: 'high',
+        fix: 'Use Solidity 0.8.x which has built-in overflow checks or use SafeMath library for older versions.'
+      };
+    }
+    
+    // Default case
+    return {
+      description: 'Potential code issue detected.',
+      severity: 'medium',
+      fix: 'Review the warning and consider refactoring your code.'
+    };
   };
 
   const handleDeploy = async (resumeOp = false, existingFileId = null, customDeploymentId = null) => {
@@ -440,6 +703,17 @@ const CreateContractPage = () => {
               {/* Compile and Deploy buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
+                  onClick={handleValidate}
+                  disabled={!(activeTab === 'sample' ? contractCode.trim() : customContractCode.trim())}
+                  variant="outline"
+                  className="group bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-800/30"
+                  size="lg"
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Validate Contract
+                </Button>
+                
+                <Button
                   onClick={handleCompile}
                   disabled={isCompiling || !(activeTab === 'sample' ? contractCode.trim() : customContractCode.trim())}
                   className="group"
@@ -520,33 +794,94 @@ const CreateContractPage = () => {
                 </div>
                 
                 {/* Security Analysis Display */}
-                {compilationResult?.warnings && compilationResult.warnings.length > 0 && (
+                {warnings.length > 0 && (
                   <motion.div 
                     className="border-b border-border/30 pb-4 mb-4"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-foreground/80 mb-2 flex items-center">
-                        <Shield className="h-4 w-4 mr-1 text-amber-500" />
-                        Security Analysis
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-foreground/80 flex items-center">
+                        <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
+                        Security Warnings
                       </h3>
                       <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800 dark:text-amber-400">
-                        {compilationResult.warnings.length} {compilationResult.warnings.length === 1 ? 'warning' : 'warnings'}
+                        {warnings.length} {warnings.length === 1 ? 'warning' : 'warnings'}
                       </Badge>
                     </div>
-                    <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 overflow-y-auto max-h-48">
-                      <ul className="space-y-2 pl-1">
-                        {compilationResult.warnings.map((warning, index) => (
-                          <li key={index} className="text-sm flex items-start">
-                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mr-2 flex-shrink-0 mt-0.5" />
-                            <span>{warning}</span>
-                          </li>
-                        ))}
+                    <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 overflow-y-auto max-h-48">
+                      <ul className="divide-y divide-amber-200 dark:divide-amber-800/50">
+                        {warnings.map((warning, index) => {
+                          const info = getWarningInfo(warning);
+                          return (
+                            <li key={index} className="p-3">
+                              <div className="flex items-start mb-1">
+                                <div className={`flex-shrink-0 rounded-full w-5 h-5 flex items-center justify-center mt-0.5 mr-2 ${
+                                  info.severity === 'high' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                                  info.severity === 'medium' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                                  'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                }`}>
+                                  <AlertTriangle className="h-3 w-3" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-foreground/80">{warning}</p>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    <p>{info.description}</p>
+                                    <p className="mt-1"><span className="font-medium">Suggested fix:</span> {info.fix}</p>
+                                  </div>
+                                </div>
+                                <Badge className={`ml-2 ${
+                                  info.severity === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800/50' :
+                                  info.severity === 'medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800/50' :
+                                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/50'
+                                }`}>
+                                  {info.severity}
+                                </Badge>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   </motion.div>
+                )}
+                
+                {/* Only show security score after compilation */}
+                {compilationResult && (
+                  <div className="flex items-center justify-between border-b border-border/30 pb-4 mb-4">
+                    <div className="w-full">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-foreground/80">Security Score</h3>
+                        <div className={`px-2 py-1 rounded text-sm font-medium ${
+                          securityScore >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          securityScore >= 60 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {securityScore}%
+                        </div>
+                      </div>
+                      <Progress 
+                        value={securityScore} 
+                        className={`h-2 ${
+                          securityScore >= 80 ? 'bg-green-100 dark:bg-green-900/30' :
+                          securityScore >= 60 ? 'bg-amber-100 dark:bg-amber-900/30' :
+                          'bg-red-100 dark:bg-red-900/30'
+                        }`}
+                        indicatorClassName={`${
+                          securityScore >= 80 ? 'bg-green-500 dark:bg-green-600' :
+                          securityScore >= 60 ? 'bg-amber-500 dark:bg-amber-600' :
+                          'bg-red-500 dark:bg-red-600'
+                        }`}
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {securityScore >= 90 ? 'Excellent! Your contract has passed security checks.' :
+                          securityScore >= 80 ? 'Good security practices. Review warnings to improve further.' :
+                          securityScore >= 60 ? 'Moderate risk detected. Address warnings before deployment.' :
+                          'High risk detected! Fix security issues before deploying.'}
+                      </p>
+                    </div>
+                  </div>
                 )}
                 
                 <div className="flex items-center justify-between border-b border-border/30 pb-4">
