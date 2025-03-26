@@ -3,7 +3,7 @@ export const sampleContracts = [
     name: "Simple Storage",
     description: "A basic contract that stores and retrieves a value",
     code: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 contract SimpleStorage {
     uint256 private storedValue;
@@ -26,7 +26,7 @@ contract SimpleStorage {
     name: "Token Contract",
     description: "A simple ERC-20 like token contract",
     code: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 contract SimpleToken {
     string public name = "SimpleToken";
@@ -50,6 +50,7 @@ contract SimpleToken {
     
     function transfer(address recipient, uint256 amount) public returns (bool) {
         require(balances[msg.sender] >= amount, "Insufficient balance");
+        require(recipient != address(0), "Cannot transfer to zero address");
         
         balances[msg.sender] -= amount;
         balances[recipient] += amount;
@@ -59,6 +60,8 @@ contract SimpleToken {
     }
     
     function approve(address spender, uint256 amount) public returns (bool) {
+        require(spender != address(0), "Cannot approve zero address");
+        
         allowances[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
@@ -67,6 +70,7 @@ contract SimpleToken {
     function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
         require(balances[sender] >= amount, "Insufficient balance");
         require(allowances[sender][msg.sender] >= amount, "Insufficient allowance");
+        require(recipient != address(0), "Cannot transfer to zero address");
         
         balances[sender] -= amount;
         balances[recipient] += amount;
@@ -85,7 +89,7 @@ contract SimpleToken {
     name: "Basic NFT",
     description: "A simplified NFT-like contract",
     code: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 contract SimpleNFT {
     // Token name
@@ -113,6 +117,8 @@ contract SimpleNFT {
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
     
     function mint(address to, string memory tokenURI) public returns (uint256) {
+        require(to != address(0), "Mint to the zero address");
+        
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         
@@ -149,6 +155,7 @@ contract SimpleNFT {
     
     function transferFrom(address from, address to, uint256 tokenId) public {
         require(owners[tokenId] == from, "Not the token owner");
+        require(to != address(0), "Transfer to the zero address");
         require(
             msg.sender == from || 
             msg.sender == tokenApprovals[tokenId],
@@ -170,12 +177,12 @@ contract SimpleNFT {
 }`,
   },
   {
-    name: "Voting Contract",
-    description: "A simple contract for creating and voting on proposals",
+    name: "Voting Contract (with issues)",
+    description: "A simple contract for creating and voting on proposals (contains security issues)",
     code: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.0;
 
-contract SimpleVoting {
+contract VulnerableVoting {
     struct Proposal {
         string description;
         uint256 voteCount;
@@ -196,15 +203,11 @@ contract SimpleVoting {
     event ProposalClosed(uint256 proposalId);
     
     constructor() {
-        chairperson = msg.sender;
+        chairperson = tx.origin; // Using tx.origin is a security risk
     }
     
-    modifier onlyChairperson() {
-        require(msg.sender == chairperson, "Only chairperson can call this function");
-        _;
-    }
-    
-    function createProposal(string memory _description) public returns (uint256) {
+    // No function visibility modifier
+    function createProposal(string memory _description) returns (uint256) {
         uint256 proposalId = proposals.length;
         proposals.push(Proposal({
             description: _description,
@@ -229,37 +232,63 @@ contract SimpleVoting {
         emit Voted(msg.sender, _proposalId);
     }
     
-    function closeProposal(uint256 _proposalId) public onlyChairperson {
+    // Unbounded loop - can cause DoS
+    function getAllVoters() public view returns (address[] memory) {
+        address[] memory allVoters = new address[](1000);
+        uint256 count = 0;
+        
+        for (uint i = 0; i < block.number; i++) {
+            address voterAddress = address(uint160(uint(keccak256(abi.encodePacked(i)))));
+            if (voters[voterAddress].hasVoted) {
+                allVoters[count] = voterAddress;
+                count++;
+                if (count >= 1000) break;
+            }
+        }
+        
+        return allVoters;
+    }
+    
+    // Reentrancy vulnerability
+    function closeProposalAndRefund(uint256 _proposalId) public {
         require(_proposalId < proposals.length, "Invalid proposal ID");
         require(proposals[_proposalId].active, "Proposal is already closed");
+        require(msg.sender == chairperson, "Only chairperson can close proposals");
         
+        // Send reward to the chairperson - vulnerable to reentrancy
+        (bool success, ) = msg.sender.call{value: 0.1 ether}("");
+        
+        // State change after external call - reentrancy vulnerability
         proposals[_proposalId].active = false;
         
         emit ProposalClosed(_proposalId);
     }
     
-    function getProposalCount() public view returns (uint256) {
-        return proposals.length;
+    // Using block.timestamp for randomness
+    function getRandomWinner() public view returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(block.timestamp))) % proposals.length;
     }
     
-    function getProposal(uint256 _proposalId) public view returns (
-        string memory description,
-        uint256 voteCount,
-        bool active
-    ) {
-        require(_proposalId < proposals.length, "Invalid proposal ID");
+    // Infinite loop possibility
+    function findWinningProposal() public view returns (uint256) {
+        uint256 winningVoteCount = 0;
+        uint256 winningProposalId = 0;
         
-        Proposal memory proposal = proposals[_proposalId];
-        return (proposal.description, proposal.voteCount, proposal.active);
-    }
-    
-    function hasVoted(address _voter) public view returns (bool) {
-        return voters[_voter].hasVoted;
-    }
-    
-    function getVotedProposal(address _voter) public view returns (uint256) {
-        require(voters[_voter].hasVoted, "Address has not voted");
-        return voters[_voter].votedProposalId;
+        while(true) {
+            // This loop will run indefinitely if no proposals exist
+            if (proposals.length > 0) {
+                break;
+            }
+        }
+        
+        for (uint256 i = 0; i < proposals.length; i++) {
+            if (proposals[i].voteCount > winningVoteCount) {
+                winningVoteCount = proposals[i].voteCount;
+                winningProposalId = i;
+            }
+        }
+        
+        return winningProposalId;
     }
 }`,
   }
