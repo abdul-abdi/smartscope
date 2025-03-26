@@ -29,14 +29,20 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({
   return (
     <div className="mb-4">
       <div className="flex items-center mb-2">
-        <Link href="/explore" className="inline-flex items-center">
-          <Button variant="ghost" size="sm" className="mr-2 group">
-            <ArrowLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
-            Back
+        <Link href="/interact" className="inline-flex items-center">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mr-3 group hover:bg-primary/10 hover:text-primary border-border/50 flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Interact</span>
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">
-          {contractAddress.substring(0, 7)}...{contractAddress.substring(contractAddress.length - 4)}
+        <h1 className="text-2xl font-bold flex items-center">
+          <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            {contractAddress.substring(0, 7)}...{contractAddress.substring(contractAddress.length - 4)}
+          </span>
         </h1>
       </div>
       
