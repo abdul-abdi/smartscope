@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, Code, FileText, ExternalLink, Clock, Shield, Zap, ChevronDown, Bot, CheckCircle } from 'lucide-react';
+import { ArrowRight, Code, FileText, ExternalLink, Clock, Shield, Zap, ChevronDown, Bot, CheckCircle, Wallet } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 // Sample code animation text
@@ -787,6 +787,170 @@ export default function Home() {
                 </div>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* NEW SECTION: Find Your Path */}
+      <section className="py-24 relative">
+        <div className="absolute inset-0 overflow-hidden -z-10">
+          <svg className="absolute w-full h-full opacity-[0.03]" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <pattern id="path-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M10 0H0V10" stroke="currentColor" strokeWidth="0.5" fill="none" />
+            </pattern>
+            <rect width="100" height="100" fill="url(#path-grid)" />
+          </svg>
+        </div>
+
+        <div className="container mx-auto px-4">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7 }}
+          >
+            <motion.div 
+              className="inline-block mb-4 relative"
+              whileInView={{
+                opacity: [0, 1],
+                y: [20, 0]
+              }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="h-1.5 w-16 bg-gradient-to-r from-primary to-purple-500 rounded-full" />
+            </motion.div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Find Your Path</h2>
+            <p className="text-lg text-foreground/70 max-w-3xl mx-auto">
+              Choose the perfect starting point for your smart contract journey on Hedera
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Create New Contracts",
+                description: "Build and deploy smart contracts from scratch with our comprehensive development environment",
+                icon: <Code className="h-6 w-6" />,
+                color: "from-blue-500/20 to-primary/20",
+                link: "/create",
+                features: [
+                  "Monaco Editor with Solidity Support",
+                  "Real-time Syntax Highlighting",
+                  "Smart Contract Templates",
+                  "One-click Deployment",
+                  "Gas Estimation",
+                  "Security Analysis"
+                ],
+                capabilities: [
+                  "Write and compile Solidity contracts",
+                  "Deploy to Hedera Testnet instantly",
+                  "Get instant security feedback",
+                  "Test with sample data",
+                  "Generate and download ABI"
+                ]
+              },
+              {
+                title: "Interact with Contracts",
+                description: "Connect to and interact with existing smart contracts on the Hedera network",
+                icon: <ExternalLink className="h-6 w-6" />,
+                color: "from-purple-500/20 to-pink-500/20",
+                link: "/interact",
+                features: [
+                  "Contract Address Search",
+                  "ABI Import/Upload",
+                  "Function Explorer",
+                  "Event Monitoring",
+                  "Transaction History",
+                  "Gas Usage Tracking"
+                ],
+                capabilities: [
+                  "Call read/write functions",
+                  "Monitor contract events",
+                  "View transaction receipts",
+                  "Track gas consumption",
+                  "Export interaction logs"
+                ]
+              },
+              {
+                title: "Check Wallet Contracts",
+                description: "View and analyze all contracts deployed by any wallet address on Hedera",
+                icon: <Wallet className="h-6 w-6" />,
+                color: "from-green-500/20 to-emerald-500/20",
+                link: "/wallet",
+                features: [
+                  "Wallet Address Lookup",
+                  "Contract List View",
+                  "Transaction History",
+                  "Contract Details",
+                  "Network Explorer",
+                  "ABI Retrieval"
+                ],
+                capabilities: [
+                  "Search by wallet address",
+                  "View deployed contracts",
+                  "Access contract ABIs",
+                  "Check transaction history",
+                  "Monitor contract status"
+                ]
+              }
+            ].map((path, i) => (
+              <motion.div
+                key={i}
+                className="relative group"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: 0.1 * i }}
+              >
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" 
+                     style={{background: `radial-gradient(circle at center, var(--primary) 0%, transparent 70%)`}} />
+                
+                <div className="bg-background/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 h-full transform transition-all duration-300 group-hover:translate-y-[-5px] group-hover:shadow-xl group-hover:border-primary/50">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 bg-gradient-to-br ${path.color}`}>
+                    <div className="text-primary">{path.icon}</div>
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold mb-3 group-hover:text-primary transition-colors">{path.title}</h3>
+                  <p className="text-foreground/70 mb-6">{path.description}</p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-foreground/90 mb-2">Key Features</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {path.features.map((feature, j) => (
+                          <span key={j} className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs">
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium text-foreground/90 mb-2">What You Can Do</h4>
+                      <ul className="space-y-2">
+                        {path.capabilities.map((capability, j) => (
+                          <li key={j} className="flex items-start text-sm text-foreground/70">
+                            <CheckCircle className="h-4 w-4 text-primary mr-2 mt-0.5 flex-shrink-0" />
+                            {capability}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Button asChild className="w-full mt-6">
+                    <Link href={path.link}>
+                      {path.title === "Create New Contracts" ? "Create & Deploy Contract" :
+                       path.title === "Interact with Contracts" ? "Connect & Interact" :
+                       "View Wallet Contracts"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>

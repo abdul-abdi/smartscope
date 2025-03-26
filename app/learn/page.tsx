@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Code, ExternalLink, FileText, Lightbulb, Search, Shield, Code2, CheckCircle, GraduationCap, Book, Coffee, FileCode, Users, Image, Scale, ShoppingCart, Sparkles, Circle, Coins, AlertTriangle, Swords, MessagesSquare, MessageCircle, MessageSquare } from 'lucide-react';
+import { ArrowRight, BookOpen, Code, ExternalLink, FileText, Lightbulb, Search, Shield, Code2, CheckCircle, GraduationCap, Book, Coffee, FileCode, Users, Image, Scale, ShoppingCart, Sparkles, Circle, Coins, AlertTriangle, Swords, MessagesSquare, MessageCircle, MessageSquare, Wallet } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
@@ -16,6 +16,7 @@ export default function LearnPage() {
   
   // Define all sections data
   const sections = [
+    { id: 'platform-guide', label: 'Platform Guide', icon: Coffee, description: 'Learn how to use SmartScope effectively' },
     { id: 'basics', label: 'Smart Contract Basics', icon: Book, description: 'Introduction to smart contracts and their applications' },
     { id: 'solidity', label: 'Solidity Fundamentals', icon: Code, description: 'Learn the basics of Solidity programming language' },
     { id: 'hedera', label: 'Hedera Network', icon: Shield, description: 'Explore the Hedera network and its features' },
@@ -259,6 +260,271 @@ export default function LearnPage() {
                 
                 <div className="relative">
                   {/* Conditional rendering of section content */}
+                  {activeSection === 'platform-guide' && (
+                    <motion.div
+                      key="platform-guide"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="prose prose-lg dark:prose-invert max-w-none"
+                    >
+                      <p>
+                        Welcome to SmartScope! This comprehensive guide will walk you through all the features and capabilities
+                        of our platform for developing, validating, and deploying smart contracts on the Hedera network.
+                      </p>
+
+                      <h3>Platform Overview</h3>
+                      <div className="bg-muted/50 rounded-lg p-6 border border-border my-6">
+                        <p className="mb-4">
+                          SmartScope is designed to provide a seamless experience for smart contract development on Hedera.
+                          Whether you're creating new contracts, interacting with existing ones, or checking wallet deployments,
+                          our platform has you covered.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-background/50 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2 flex items-center">
+                              <FileCode className="h-5 w-5 mr-2 text-primary" />
+                              Create
+                            </h4>
+                            <p className="text-sm text-foreground/80">
+                              Write, validate, and deploy new smart contracts with our advanced editor
+                            </p>
+                          </div>
+                          <div className="bg-background/50 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2 flex items-center">
+                              <ExternalLink className="h-5 w-5 mr-2 text-primary" />
+                              Interact
+                            </h4>
+                            <p className="text-sm text-foreground/80">
+                              Connect to existing contracts and interact with their functions
+                            </p>
+                          </div>
+                          <div className="bg-background/50 p-4 rounded-lg">
+                            <h4 className="font-medium mb-2 flex items-center">
+                              <Wallet className="h-5 w-5 mr-2 text-primary" />
+                              Wallet
+                            </h4>
+                            <p className="text-sm text-foreground/80">
+                              View and analyze contracts deployed by any wallet address
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h3>Getting Started</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6 not-prose">
+                        <div className="bg-muted/50 rounded-lg p-5 border border-border">
+                          <h4 className="text-lg font-medium mb-2 flex items-center">
+                            <FileCode className="h-5 w-5 mr-2 text-primary" />
+                            Contract Creation
+                          </h4>
+                          <ul className="text-sm space-y-2">
+                            <li>1. Navigate to the "Create" page</li>
+                            <li>2. Choose between sample contracts or write your own</li>
+                            <li>3. Use the advanced code editor with syntax highlighting</li>
+                            <li>4. Access real-time validation and security checks</li>
+                            <li>5. Test your contract with sample data</li>
+                            <li>6. Deploy to Hedera Testnet</li>
+                          </ul>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-5 border border-border">
+                          <h4 className="text-lg font-medium mb-2 flex items-center">
+                            <Shield className="h-5 w-5 mr-2 text-primary" />
+                            Contract Validation
+                          </h4>
+                          <ul className="text-sm space-y-2">
+                            <li>1. Click "Validate Contract" to run security checks</li>
+                            <li>2. Review warnings and suggested fixes</li>
+                            <li>3. Check your contract's security score</li>
+                            <li>4. Address critical issues before deployment</li>
+                            <li>5. Optimize gas usage</li>
+                            <li>6. Generate and download ABI</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <h3>Key Features</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 not-prose mb-8">
+                        <div className="bg-background rounded-lg border border-border p-4 hover:border-primary/50 transition-all">
+                          <div className="flex items-center mb-2">
+                            <Sparkles className="h-4 w-4 text-yellow-500 mr-2" />
+                            <h4 className="font-medium">Smart Editor</h4>
+                          </div>
+                          <p className="text-sm text-foreground/80">
+                            Advanced code editor with Solidity syntax highlighting, auto-completion, error detection, and real-time validation.
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg border border-border p-4 hover:border-primary/50 transition-all">
+                          <div className="flex items-center mb-2">
+                            <Scale className="h-4 w-4 text-blue-500 mr-2" />
+                            <h4 className="font-medium">Security Analysis</h4>
+                          </div>
+                          <p className="text-sm text-foreground/80">
+                            Comprehensive security scanning with detailed feedback, vulnerability detection, and improvement suggestions.
+                          </p>
+                        </div>
+                        <div className="bg-background rounded-lg border border-border p-4 hover:border-primary/50 transition-all">
+                          <div className="flex items-center mb-2">
+                            <Coins className="h-4 w-4 text-green-500 mr-2" />
+                            <h4 className="font-medium">Testnet Deployment</h4>
+                          </div>
+                          <p className="text-sm text-foreground/80">
+                            One-click deployment to Hedera Testnet with transaction monitoring and contract verification.
+                          </p>
+                        </div>
+                      </div>
+
+                      <h3>Using the Contract Editor</h3>
+                      <div className="bg-muted/50 p-6 rounded-lg my-6 border border-border">
+                        <h4 className="font-medium mb-4">Editor Features</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h5 className="font-medium text-sm mb-2">Code Writing</h5>
+                            <ul className="text-sm space-y-1">
+                              <li>• Syntax highlighting for Solidity</li>
+                              <li>• Auto-indentation and formatting</li>
+                              <li>• Error underlining and quick fixes</li>
+                              <li>• Code snippets and templates</li>
+                              <li>• Multi-file support</li>
+                              <li>• Version control integration</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-sm mb-2">Validation Features</h5>
+                            <ul className="text-sm space-y-1">
+                              <li>• Real-time syntax checking</li>
+                              <li>• Security vulnerability scanning</li>
+                              <li>• Gas optimization suggestions</li>
+                              <li>• Best practices enforcement</li>
+                              <li>• Custom validation rules</li>
+                              <li>• Detailed error reporting</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h3>Security Analysis</h3>
+                      <div className="bg-yellow-500/10 p-6 rounded-lg my-6 border border-yellow-500/20">
+                        <h4 className="flex items-center font-medium text-yellow-500 mb-4">
+                          <AlertTriangle className="h-4 w-4 mr-2" />
+                          Understanding Security Warnings
+                        </h4>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="bg-background/50 p-4 rounded-lg">
+                            <h5 className="font-medium mb-2">Critical Warnings</h5>
+                            <p className="text-sm text-foreground/80">
+                              Highlighted in red, these issues must be fixed before deployment. They indicate serious
+                              security vulnerabilities that could compromise your contract.
+                            </p>
+                          </div>
+                          <div className="bg-background/50 p-4 rounded-lg">
+                            <h5 className="font-medium mb-2">Medium Warnings</h5>
+                            <p className="text-sm text-foreground/80">
+                              Shown in yellow, these suggest potential issues that should be reviewed but may not be
+                              critical depending on your contract's purpose.
+                            </p>
+                          </div>
+                          <div className="bg-background/50 p-4 rounded-lg">
+                            <h5 className="font-medium mb-2">Informational Notes</h5>
+                            <p className="text-sm text-foreground/80">
+                              Displayed in blue, these provide suggestions for code improvement and best practices.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h3>Deployment Process</h3>
+                      <div className="not-prose">
+                        <div className="bg-muted/50 rounded-lg p-6 border border-border">
+                          <h4 className="font-medium mb-4">Deployment Steps</h4>
+                          <ol className="space-y-4">
+                            <li className="flex items-start">
+                              <div className="bg-primary/10 p-1.5 rounded-full mr-3 mt-0.5">
+                                <Circle className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <h5 className="font-medium mb-1">Validation Check</h5>
+                                <p className="text-sm text-foreground/80">
+                                  Ensure your contract passes all critical security checks and has an acceptable security score.
+                                </p>
+                              </div>
+                            </li>
+                            <li className="flex items-start">
+                              <div className="bg-primary/10 p-1.5 rounded-full mr-3 mt-0.5">
+                                <Circle className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <h5 className="font-medium mb-1">Compilation</h5>
+                                <p className="text-sm text-foreground/80">
+                                  The contract is compiled to bytecode. Any compilation errors must be resolved.
+                                </p>
+                              </div>
+                            </li>
+                            <li className="flex items-start">
+                              <div className="bg-primary/10 p-1.5 rounded-full mr-3 mt-0.5">
+                                <Circle className="h-4 w-4 text-primary" />
+                              </div>
+                              <div>
+                                <h5 className="font-medium mb-1">Deployment</h5>
+                                <p className="text-sm text-foreground/80">
+                                  Contract is deployed to Hedera Testnet. You'll receive the contract address upon successful deployment.
+                                </p>
+                              </div>
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+
+                      <h3>Getting Help</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose mt-6">
+                        <a 
+                          href="https://github.com/your-repo/issues" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex flex-col p-4 border border-border hover:border-primary/50 rounded-lg hover:bg-primary/5 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <div className="mr-3 rounded-md bg-purple-100 dark:bg-purple-900/20 p-2">
+                              <MessageSquare className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <h4 className="font-medium">Report Issues</h4>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Found a bug? Report it on our GitHub repository
+                          </p>
+                        </a>
+                        <a 
+                          href="https://github.com/your-repo/discussions" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex flex-col p-4 border border-border hover:border-primary/50 rounded-lg hover:bg-primary/5 transition-colors"
+                        >
+                          <div className="flex items-center">
+                            <div className="mr-3 rounded-md bg-blue-100 dark:bg-blue-900/20 p-2">
+                              <MessagesSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <h4 className="font-medium">Community Support</h4>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Get help from our community in GitHub Discussions
+                          </p>
+                        </a>
+                      </div>
+
+                      <div className="bg-muted p-4 rounded-lg my-6">
+                        <h4 className="flex items-center font-medium">
+                          <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
+                          Pro Tip
+                        </h4>
+                        <p className="mt-2 text-sm">
+                          Use the sample contracts as a starting point to understand best practices and common patterns.
+                          Each sample is thoroughly documented and demonstrates different aspects of smart contract development.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {activeSection === 'basics' && (
                     <motion.div
                       key="basics"
@@ -405,7 +671,6 @@ export default function LearnPage() {
                     </motion.div>
                   )}
 
-                  {/* Add other sections conditionally... */}
                   {activeSection === 'solidity' && (
                     <motion.div
                       key="solidity"
@@ -626,7 +891,6 @@ contract MyContract {
                     </motion.div>
                   )}
 
-                  {/* Add other sections conditionally... */}
                   {activeSection === 'hedera' && (
                     <motion.div
                       key="hedera"
@@ -813,7 +1077,6 @@ contract MyContract {
                     </motion.div>
                   )}
                   
-                  {/* Add other sections conditionally... */}
                   {activeSection === 'deployment' && (
                     <motion.div
                       key="deployment"
@@ -970,7 +1233,6 @@ async function deployContract() {
                     </motion.div>
                   )}
                   
-                  {/* Add other sections conditionally... */}
                   {activeSection === 'security' && (
                     <motion.div
                       key="security"
@@ -1224,7 +1486,6 @@ function withdraw() public {
                     </motion.div>
                   )}
                   
-                  {/* Add other sections conditionally... */}
                   {activeSection === 'example-contracts' && (
                     <motion.div
                       key="example-contracts"
@@ -1444,7 +1705,6 @@ contract Crowdfunding {
                     </motion.div>
                   )}
                   
-                  {/* Learning Resources Section */}
                   {activeSection === 'learning-resources' && (
                     <motion.div
                       key="learning-resources"

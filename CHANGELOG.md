@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced analytics framework preparation
 - Enhanced AI features research
 
-## [1.0.0] - 2024-03-24
+## [1.0.0] - 2024-03-25
 
 ### Added
 - Initial public release
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framer Motion animations
 - Gemini API for AI Assistant
 
-## [0.9.0] - 2024-03-10
+## [0.9.0] - 2024-03-22
 
 ### Added
 - Beta release for internal testing
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UI responsiveness on mobile devices
 - ABI parsing for complex contracts
 
-## [0.5.0] - 2024-02-15
+## [0.5.0] - 2024-02-21
 
 ### Added
 - Alpha release

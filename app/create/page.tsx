@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
@@ -422,20 +422,219 @@ const CreateContractPage = () => {
     setContractAddress('');
   }, [activeTab, selectedSample, customContractCode]);
 
-  // Add automatic validation with debounce
+  // Update the updateEditorDecorations function to include linting results
+  const updateEditorDecorations = useCallback((editor, monaco, results) => {
+    if (!editor || !monaco) return;
+    
+    const errorDecorations = [];
+    const warningDecorations = [];
+    const infoDecorations = [];
+    
+    // Process validation errors
+    if (results.errors && results.errors.length > 0) {
+      const lineRegex = /line\s+(\d+)/i;
+      
+      results.errors.forEach(error => {
+        // Try to extract line number from error message
+        const lineMatch = error.match(lineRegex);
+        const lineNumber = lineMatch ? parseInt(lineMatch[1]) : null;
+        
+        if (lineNumber) {
+          errorDecorations.push({
+            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+              isWholeLine: true,
+              className: 'error-line-highlight',
+              glyphMarginClassName: 'error-glyph-margin',
+              hoverMessage: { value: error },
+              glyphMarginHoverMessage: { value: error },
+              overviewRuler: {
+                color: 'red',
+                position: monaco.editor.OverviewRulerLane.Right
+              }
+            }
+          });
+        } else {
+          // If no line number is found, attempt to infer it from the content
+          const errorPatterns = [
+            { pattern: /pragma\s+solidity/, message: /pragma/i },
+            { pattern: /constructor/, message: /constructor/i },
+            { pattern: /function\s+\w+/, message: /function/i },
+            { pattern: /contract\s+\w+/, message: /contract/i }
+          ];
+          
+          for (const pattern of errorPatterns) {
+            if (error.match(pattern.message)) {
+              const lines = findLinesWithPattern(contractCode, pattern.pattern);
+              lines.forEach(line => {
+                errorDecorations.push({
+                  range: new monaco.Range(line, 1, line, 1),
+                  options: {
+                    isWholeLine: true,
+                    className: 'error-line-highlight',
+                    glyphMarginClassName: 'error-glyph-margin',
+                    hoverMessage: { value: error },
+                    glyphMarginHoverMessage: { value: error },
+                    overviewRuler: {
+                      color: 'red',
+                      position: monaco.editor.OverviewRulerLane.Right
+                    }
+                  }
+                });
+              });
+              break;
+            }
+          }
+        }
+      });
+    }
+    
+    // Process validation warnings
+    if (results.warnings && results.warnings.length > 0) {
+      // For warnings, we'll do more specific pattern matching since they may be more structured
+      results.warnings.forEach(warning => {
+        // Look for patterns like "in line X" or similar
+        const lineMatch = warning.match(/(?:in|at|on)\s+line\s+(\d+)/i) || 
+                          warning.match(/line\s+(\d+)/i);
+        
+        const lineNumber = lineMatch ? parseInt(lineMatch[1]) : null;
+        
+        if (lineNumber) {
+          warningDecorations.push({
+            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+              isWholeLine: true,
+              className: 'warning-line-highlight',
+              glyphMarginClassName: 'warning-glyph-margin',
+              hoverMessage: { value: warning },
+              glyphMarginHoverMessage: { value: warning },
+              overviewRuler: {
+                color: 'yellow',
+                position: monaco.editor.OverviewRulerLane.Right
+              }
+            }
+          });
+        } else {
+          // Some specific warning patterns to detect
+          const patterns = [
+            { regex: /reentrancy/i, lines: findLinesWithPattern(contractCode, /\.call\{value:/g) },
+            { regex: /tx\.origin/i, lines: findLinesWithPattern(contractCode, /tx\.origin/g) },
+            { regex: /unbounded loop/i, lines: findLinesWithPattern(contractCode, /for\s*\(/g) },
+            { regex: /floating pragma/i, lines: findLinesWithPattern(contractCode, /pragma\s+solidity/g) },
+            { regex: /selfdestruct/i, lines: findLinesWithPattern(contractCode, /selfdestruct/g) },
+            { regex: /delegatecall/i, lines: findLinesWithPattern(contractCode, /delegatecall/g) },
+            { regex: /block\.timestamp/i, lines: findLinesWithPattern(contractCode, /block\.timestamp/g) }
+          ];
+          
+          for (const pattern of patterns) {
+            if (pattern.regex.test(warning) && pattern.lines.length > 0) {
+              pattern.lines.forEach(lineNumber => {
+                warningDecorations.push({
+                  range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                  options: {
+                    isWholeLine: true,
+                    className: 'warning-line-highlight',
+                    glyphMarginClassName: 'warning-glyph-margin',
+                    hoverMessage: { value: warning },
+                    glyphMarginHoverMessage: { value: warning },
+                    overviewRuler: {
+                      color: 'yellow',
+                      position: monaco.editor.OverviewRulerLane.Right
+                    }
+                  }
+                });
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    // Run linter and add linting decorations
+    const lintResults = lintSolidityCode(contractCode);
+    
+    lintResults.forEach(result => {
+      const decoration = {
+        range: new monaco.Range(result.lineNumber, 1, result.lineNumber, 1),
+        options: {
+          isWholeLine: true,
+          className: result.severity === 3 ? 'error-line-highlight' : 
+                   result.severity === 2 ? 'warning-line-highlight' : 'info-line-highlight',
+          hoverMessage: { value: `[Linter] ${result.message}` },
+          glyphMarginHoverMessage: { value: `[Linter] ${result.message}` },
+          overviewRuler: {
+            color: result.severity === 3 ? 'red' : 
+                  result.severity === 2 ? 'yellow' : 'blue',
+            position: monaco.editor.OverviewRulerLane.Right
+          }
+        }
+      };
+      
+      if (result.severity === 3) {
+        errorDecorations.push(decoration);
+      } else if (result.severity === 2) {
+        warningDecorations.push(decoration);
+      } else {
+        infoDecorations.push(decoration);
+      }
+    });
+    
+    // Add squiggly lines for errors and warnings
+    const errorMarkers = [];
+    const warningMarkers = [];
+    
+    [...errorDecorations, ...warningDecorations, ...infoDecorations].forEach(decoration => {
+      const lineNumber = decoration.range.startLineNumber;
+      const message = typeof decoration.options.hoverMessage === 'object' ? 
+                      decoration.options.hoverMessage.value : 
+                      decoration.options.hoverMessage;
+      
+      const severity = decoration.options.className.includes('error') ? monaco.MarkerSeverity.Error :
+                      decoration.options.className.includes('warning') ? monaco.MarkerSeverity.Warning :
+                      monaco.MarkerSeverity.Info;
+      
+      const marker = {
+        severity,
+        message,
+        startLineNumber: lineNumber,
+        startColumn: 1,
+        endLineNumber: lineNumber,
+        endColumn: editor.getModel().getLineMaxColumn(lineNumber)
+      };
+      
+      if (severity === monaco.MarkerSeverity.Error) {
+        errorMarkers.push(marker);
+      } else if (severity === monaco.MarkerSeverity.Warning) {
+        warningMarkers.push(marker);
+      }
+    });
+    
+    // Set markers for the editor model
+    if (errorMarkers.length > 0 || warningMarkers.length > 0) {
+      monaco.editor.setModelMarkers(
+        editor.getModel(),
+        'solidity-validator',
+        [...errorMarkers, ...warningMarkers]
+      );
+    } else {
+      // Clear markers if none are found
+      monaco.editor.setModelMarkers(editor.getModel(), 'solidity-validator', []);
+    }
+    
+    // Apply decorations to editor
+    editor.deltaDecorations([], [...errorDecorations, ...warningDecorations, ...infoDecorations]);
+  }, [contractCode]); // Add contractCode as a dependency
+
+  // Update the useEffect to include updateEditorDecorations in dependencies
   useEffect(() => {
-    if (contractCode && contractCode.trim() !== '' && autoValidate) {
-      // Add debounce to avoid too frequent validations
+    if (autoValidate && contractCode) {
       const timer = setTimeout(async () => {
         try {
           const result = await validateContractCode(contractCode);
-          // Update validation state
           setValidationWarnings(result.warnings);
           setValidationErrors(result.errors);
           setSecurityScore(result.securityScore);
-          setValidationResults(result);
           
-          // Update editor decorations when validation finishes
           if (editorRef.current && monacoRef.current) {
             updateEditorDecorations(
               editorRef.current, 
@@ -450,7 +649,7 @@ const CreateContractPage = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [contractCode, autoValidate]); // Remove updateEditorDecorations from dependency array
+  }, [contractCode, autoValidate, updateEditorDecorations]); // Add updateEditorDecorations to dependencies
 
   // Update handleSampleChange to be async
   const handleSampleChange = async (value: string) => {
@@ -1365,219 +1564,6 @@ const CreateContractPage = () => {
     });
     
     return linterResults;
-  };
-
-  // Update the updateEditorDecorations function to include linting results
-  const updateEditorDecorations = (editor, monaco, results) => {
-    if (!editor || !monaco) return;
-    
-    const errorDecorations = [];
-    const warningDecorations = [];
-    const infoDecorations = [];
-    
-    // Process validation errors
-    if (results.errors && results.errors.length > 0) {
-      const lineRegex = /line\s+(\d+)/i;
-      
-      results.errors.forEach(error => {
-        // Try to extract line number from error message
-        const lineMatch = error.match(lineRegex);
-        const lineNumber = lineMatch ? parseInt(lineMatch[1]) : null;
-        
-        if (lineNumber) {
-          errorDecorations.push({
-            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-              isWholeLine: true,
-              className: 'error-line-highlight',
-              glyphMarginClassName: 'error-glyph-margin',
-              hoverMessage: { value: error },
-              glyphMarginHoverMessage: { value: error },
-              overviewRuler: {
-                color: 'red',
-                position: monaco.editor.OverviewRulerLane.Right
-              }
-            }
-          });
-            } else {
-          // If no line number is found, attempt to infer it from the content
-          const errorPatterns = [
-            { pattern: /pragma\s+solidity/, message: /pragma/i },
-            { pattern: /constructor/, message: /constructor/i },
-            { pattern: /function\s+\w+/, message: /function/i },
-            { pattern: /contract\s+\w+/, message: /contract/i }
-          ];
-          
-          for (const pattern of errorPatterns) {
-            if (error.match(pattern.message)) {
-              const lines = findLinesWithPattern(contractCode, pattern.pattern);
-              lines.forEach(line => {
-                errorDecorations.push({
-                  range: new monaco.Range(line, 1, line, 1),
-                  options: {
-                    isWholeLine: true,
-                    className: 'error-line-highlight',
-                    glyphMarginClassName: 'error-glyph-margin',
-                    hoverMessage: { value: error },
-                    glyphMarginHoverMessage: { value: error },
-                    overviewRuler: {
-                      color: 'red',
-                      position: monaco.editor.OverviewRulerLane.Right
-                    }
-                  }
-                });
-              });
-              break;
-            }
-          }
-        }
-      });
-    }
-    
-    // Process validation warnings
-    if (results.warnings && results.warnings.length > 0) {
-      // For warnings, we'll do more specific pattern matching since they may be more structured
-      results.warnings.forEach(warning => {
-        // Look for patterns like "in line X" or similar
-        const lineMatch = warning.match(/(?:in|at|on)\s+line\s+(\d+)/i) || 
-                          warning.match(/line\s+(\d+)/i);
-        
-        const lineNumber = lineMatch ? parseInt(lineMatch[1]) : null;
-        
-        if (lineNumber) {
-          warningDecorations.push({
-            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-              isWholeLine: true,
-              className: 'warning-line-highlight',
-              glyphMarginClassName: 'warning-glyph-margin',
-              hoverMessage: { value: warning },
-              glyphMarginHoverMessage: { value: warning },
-              overviewRuler: {
-                color: 'yellow',
-                position: monaco.editor.OverviewRulerLane.Right
-              }
-            }
-          });
-      } else {
-          // Some specific warning patterns to detect
-          const patterns = [
-            { regex: /reentrancy/i, lines: findLinesWithPattern(contractCode, /\.call\{value:/g) },
-            { regex: /tx\.origin/i, lines: findLinesWithPattern(contractCode, /tx\.origin/g) },
-            { regex: /unbounded loop/i, lines: findLinesWithPattern(contractCode, /for\s*\(/g) },
-            { regex: /floating pragma/i, lines: findLinesWithPattern(contractCode, /pragma\s+solidity/g) },
-            { regex: /selfdestruct/i, lines: findLinesWithPattern(contractCode, /selfdestruct/g) },
-            { regex: /delegatecall/i, lines: findLinesWithPattern(contractCode, /delegatecall/g) },
-            { regex: /block\.timestamp/i, lines: findLinesWithPattern(contractCode, /block\.timestamp/g) }
-          ];
-          
-          for (const pattern of patterns) {
-            if (pattern.regex.test(warning) && pattern.lines.length > 0) {
-              pattern.lines.forEach(lineNumber => {
-                warningDecorations.push({
-                  range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-                  options: {
-                    isWholeLine: true,
-                    className: 'warning-line-highlight',
-                    glyphMarginClassName: 'warning-glyph-margin',
-                    hoverMessage: { value: warning },
-                    glyphMarginHoverMessage: { value: warning },
-                    overviewRuler: {
-                      color: 'yellow',
-                      position: monaco.editor.OverviewRulerLane.Right
-                    }
-                  }
-                });
-              });
-            }
-          }
-        }
-      });
-    }
-    
-    // Run linter and add linting decorations
-    const lintResults = lintSolidityCode(contractCode);
-    
-    lintResults.forEach(result => {
-      const decoration = {
-        range: new monaco.Range(result.lineNumber, 1, result.lineNumber, 1),
-        options: {
-          isWholeLine: true,
-          className: result.severity === 3 ? 'error-line-highlight' : 
-                   result.severity === 2 ? 'warning-line-highlight' : 'info-line-highlight',
-          hoverMessage: { value: `[Linter] ${result.message}` },
-          glyphMarginHoverMessage: { value: `[Linter] ${result.message}` },
-          overviewRuler: {
-            color: result.severity === 3 ? 'red' : 
-                  result.severity === 2 ? 'yellow' : 'blue',
-            position: monaco.editor.OverviewRulerLane.Right
-          }
-        }
-      };
-      
-      if (result.severity === 3) {
-        errorDecorations.push(decoration);
-      } else if (result.severity === 2) {
-        warningDecorations.push(decoration);
-      } else {
-        infoDecorations.push(decoration);
-      }
-    });
-    
-    // Add squiggly lines for errors and warnings
-    const errorMarkers = [];
-    const warningMarkers = [];
-    
-    [...errorDecorations, ...warningDecorations, ...infoDecorations].forEach(decoration => {
-      const lineNumber = decoration.range.startLineNumber;
-      const message = typeof decoration.options.hoverMessage === 'object' ? 
-                      decoration.options.hoverMessage.value : 
-                      decoration.options.hoverMessage;
-      
-      const severity = decoration.options.className.includes('error') ? monaco.MarkerSeverity.Error :
-                      decoration.options.className.includes('warning') ? monaco.MarkerSeverity.Warning :
-                      monaco.MarkerSeverity.Info;
-      
-      const marker = {
-        severity,
-        message,
-        startLineNumber: lineNumber,
-        startColumn: 1,
-        endLineNumber: lineNumber,
-        endColumn: editor.getModel().getLineMaxColumn(lineNumber)
-      };
-      
-      if (severity === monaco.MarkerSeverity.Error) {
-        errorMarkers.push(marker);
-      } else if (severity === monaco.MarkerSeverity.Warning) {
-        warningMarkers.push(marker);
-      }
-    });
-    
-    // Set markers for the editor model
-    if (errorMarkers.length > 0 || warningMarkers.length > 0) {
-      monaco.editor.setModelMarkers(
-        editor.getModel(),
-        'solidity-validator',
-        [...errorMarkers, ...warningMarkers]
-      );
-    } else {
-      // Clear markers if none are found
-      monaco.editor.setModelMarkers(editor.getModel(), 'solidity-validator', []);
-    }
-    
-    // Apply decorations to editor
-    if (errorDecorations.length > 0) {
-      editor.createDecorationsCollection(errorDecorations);
-    }
-    
-    if (warningDecorations.length > 0) {
-      editor.createDecorationsCollection(warningDecorations);
-    }
-    
-    if (infoDecorations.length > 0) {
-      editor.createDecorationsCollection(infoDecorations);
-    }
   };
 
   // Add the findLinesWithPattern helper function
