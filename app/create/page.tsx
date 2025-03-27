@@ -16,12 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../../components/ui/badge';
 import { compileContract, deployContract } from '../utils/api';
 import { sampleContracts, getDefaultSampleContract } from '../data/sample-contracts';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import SolidityEditor from './SolidityEditor';
 import { ActionButtons, StatusPanel, TipsPanel, IDEDetailsPanel } from './ButtonActions';
 import MultiFileIDE, { MultiFileIDEHandle } from './MultiFileIDE';
-import { FileSystemProvider } from '../../components/providers/file-system-provider';
 import { ToastProvider, useToast } from '../../components/providers/toast-provider';
 import { 
   Dialog, 
@@ -217,6 +216,8 @@ const CreateContractPage = () => {
   const [ideMode, setIdeMode] = useState<'simple' | 'advanced'>('simple');
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
   const [constructorArgs, setConstructorArgs] = useState<Record<string, any>>({});
+  const [sampleContract, setSampleContract] = useState(getDefaultSampleContract());
+  const searchParams = useSearchParams();
   
   // Add theme detection right after useState declarations
   const { theme, resolvedTheme } = useTheme();
@@ -233,6 +234,153 @@ const CreateContractPage = () => {
       setSelectedSample(defaultContract.name);
     }
   }, []);
+
+  useEffect(() => {
+    // Check if we have a template parameter in the URL
+    const templateId = searchParams.get('template');
+    if (templateId) {
+      // Load template code based on the ID
+      loadTemplateCode(templateId);
+    }
+  }, [searchParams]);
+
+  const loadTemplateCode = async (templateId) => {
+    try {
+      // Fetch the template data from the templates page
+      const response = await fetch(`/api/templates?id=${templateId}`);
+      
+      // If we don't have an API endpoint yet, we can use this fallback approach
+      if (!response.ok) {
+        // Define some common templates that match the ones in templates page
+        const commonTemplates = {
+          'erc20': `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyToken is ERC20, Ownable {
+    constructor(uint256 initialSupply) ERC20("MyToken", "MTK") Ownable(msg.sender) {
+        _mint(msg.sender, initialSupply);
+    }
+    
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+}`,
+          'erc721': `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+
+contract MyNFT is ERC721URIStorage, Ownable {
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIds;
+
+    constructor() ERC721("MyNFT", "MNFT") Ownable(msg.sender) {}
+
+    function mintNFT(address recipient, string memory tokenURI) public onlyOwner returns (uint256) {
+        _tokenIds.increment();
+        uint256 newItemId = _tokenIds.current();
+        _mint(recipient, newItemId);
+        _setTokenURI(newItemId, tokenURI);
+        return newItemId;
+    }
+}`,
+          'reentrancy-guard': `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract Vault is ReentrancyGuard {
+    mapping(address => uint256) private _balances;
+    
+    function deposit() external payable {
+        _balances[msg.sender] += msg.value;
+    }
+    
+    function withdraw() external nonReentrant {
+        uint256 amount = _balances[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+        
+        _balances[msg.sender] = 0;
+        
+        // This external call is protected from reentrancy
+        (bool success,) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+    
+    function getBalance() external view returns (uint256) {
+        return _balances[msg.sender];
+    }
+}`,
+          'pausable': `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyPausable is Pausable, Ownable {
+    constructor() Ownable(msg.sender) {}
+    
+    function deposit() public payable whenNotPaused {
+        // Deposit logic here
+    }
+    
+    function withdraw() public whenNotPaused {
+        // Withdraw logic here
+    }
+    
+    function pause() public onlyOwner {
+        _pause();
+    }
+    
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+}`
+        };
+        
+        if (commonTemplates[templateId]) {
+          // Set the custom contract code to the template
+          setCustomContractCode(commonTemplates[templateId]);
+          
+          // Switch to the custom tab
+          setActiveTab('custom');
+          
+          // Show a success toast or notification
+          toast({
+            title: "Template loaded",
+            description: `The ${templateId} template has been loaded into the editor.`,
+            type: "success"
+          });
+        }
+      } else {
+        // If we have an API, parse the response
+        const templateData = await response.json();
+        if (templateData && templateData.code) {
+          setCustomContractCode(templateData.code);
+          setActiveTab('custom');
+          
+          // Show a success toast or notification
+          toast({
+            title: "Template loaded",
+            description: `The ${templateData.name} template has been loaded into the editor.`,
+            type: "success"
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading template:', error);
+      toast({
+        title: "Error loading template",
+        description: "There was a problem loading the template. Please try again.",
+        type: "error"
+      });
+    }
+  };
 
   // When switching tabs, update the contract code
   useEffect(() => {

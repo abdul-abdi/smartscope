@@ -541,21 +541,21 @@ export default function LearnPage() {
                         a transparent, immutable record on the blockchain.
                   </p>
                   
-                  <h3>Key Characteristics</h3>
-                  <ul>
+                  <h3 className="mt-8 mb-4">Key Characteristics</h3>
+                  <ul className="space-y-2">
                     <li><strong>Immutable:</strong> Once deployed, they cannot be changed (unless specifically designed to be upgradable)</li>
                     <li><strong>Transparent:</strong> All transactions are recorded on the blockchain and visible to all participants</li>
                     <li><strong>Trustless:</strong> No need for intermediaries as the code guarantees execution</li>
                     <li><strong>Autonomous:</strong> Automatically executes when conditions are met</li>
-                        <li><strong>Deterministic:</strong> Given the same input, they will always produce the same output</li>
-                      </ul>
-                      
-                      <h3>How Smart Contracts Work</h3>
-                      <p>
-                        Smart contracts are deployed on blockchain networks and stored as bytecode. When users interact
-                        with a smart contract, they send transactions that trigger specific functions within the contract.
-                        The blockchain's nodes execute these functions identically, reaching consensus on the resulting state.
-                      </p>
+                    <li><strong>Deterministic:</strong> Given the same input, they will always produce the same output</li>
+                  </ul>
+                  
+                  <h3 className="mt-8 mb-4">How Smart Contracts Work</h3>
+                  <p className="mb-6">
+                    Smart contracts are deployed on blockchain networks and stored as bytecode. When users interact
+                    with a smart contract, they send transactions that trigger specific functions within the contract.
+                    The blockchain's nodes execute these functions identically, reaching consensus on the resulting state.
+                  </p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 not-prose">
                         <div className="bg-muted/50 rounded-lg p-5 border border-border">
@@ -688,8 +688,8 @@ export default function LearnPage() {
                   </p>
                   
                       <h3>Basic Structure of a Solidity Contract</h3>
-                  <pre className="bg-black/90 p-4 rounded-lg overflow-x-auto text-sm">
-                    <code className="text-gray-100">
+                      <pre className="bg-black/90 p-6 rounded-lg overflow-x-auto text-sm my-6 shadow-md">
+                        <code className="text-gray-100 font-mono">
 {`// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -712,8 +712,8 @@ contract MyContract {
         emit ValueChanged(_newValue);
     }
 }`}
-                    </code>
-                  </pre>
+                        </code>
+                      </pre>
                       
                       <h3>Key Language Features</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6 not-prose">
