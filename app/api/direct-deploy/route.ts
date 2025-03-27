@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   PrivateKey,
   ContractCreateTransaction,
-  Hbar
+  Hbar,
+  ContractFunctionParameters,
+  Long
 } from '@hashgraph/sdk';
 import dotenv from 'dotenv';
 import { 
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
     const { 
       bytecode, 
       abi, 
+      constructorArgs = [],
       gas = DEFAULT_LARGE_GAS_LIMIT,
       deploymentId = `deployment-${Date.now()}`,
       operatorId: customOperatorId, 
@@ -128,19 +131,104 @@ export async function POST(req: NextRequest) {
     const bytecodeBuffer = Buffer.from(bytecodeHex, 'hex');
     
     // Log deployment attempt with more details
-    console.log(`[${deploymentId}] Direct large contract deployment started`);
+    console.log(`[${deploymentId}] Direct contract deployment started`);
     console.log(`Bytecode size: ${bytecodeBuffer.length} bytes (${Math.ceil(bytecodeBuffer.length/1024)} KB)`);
     console.log(`Using gas limit: ${gas}`);
     
     // Create transaction with higher gas limit and max transaction fee
-    const contractCreateTx = new ContractCreateTransaction()
+    let contractCreateTx = new ContractCreateTransaction()
       .setGas(gas)
       .setBytecode(bytecodeBuffer)
-      .setMaxTransactionFee(new Hbar(100)) // Increased to match main deploy route
-      .freezeWith(client);
+      .setMaxTransactionFee(new Hbar(100)); // Increased to match main deploy route
     
+    // Add constructor parameters if any
+    if (constructorArgs.length > 0) {
+      // Find constructor definition from ABI
+      const constructorDef = abi.find(item => item.type === 'constructor');
+      if (constructorDef) {
+        // Create parameters object
+        let params = new ContractFunctionParameters();
+        
+        // Add each parameter according to its type
+        constructorDef.inputs.forEach((input, index) => {
+          const value = constructorArgs[index];
+          switch (input.type) {
+            case 'string':
+              params = params.addString(value);
+              break;
+            case 'address':
+              params = params.addAddress(value);
+              break;
+            case 'bool':
+              params = params.addBool(Boolean(value));
+              break;
+            case 'uint8':
+              params = params.addUint8(Number(value));
+              break;
+            case 'uint16':
+              params = params.addUint16(Number(value));
+              break;
+            case 'uint32':
+              params = params.addUint32(Number(value));
+              break;
+            case 'uint64':
+              // Convert BigInt to Long for Hedera SDK
+              params = params.addUint64(Long.fromString(value.toString()));
+              break;
+            case 'uint256':
+              // Convert BigInt to string for Hedera SDK
+              params = params.addUint256(value.toString());
+              break;
+            case 'int8':
+              params = params.addInt8(Number(value));
+              break;
+            case 'int16':
+              params = params.addInt16(Number(value));
+              break;
+            case 'int32':
+              params = params.addInt32(Number(value));
+              break;
+            case 'int64':
+              // Convert BigInt to Long for Hedera SDK
+              params = params.addInt64(Long.fromString(value.toString()));
+              break;
+            case 'int256':
+              // Convert BigInt to string for Hedera SDK
+              params = params.addInt256(value.toString());
+              break;
+            case 'bytes32':
+              params = params.addBytes32(value);
+              break;
+            // Add more types as needed
+            default:
+              if (input.type.includes('[]')) {
+                // Handle array types - only support string arrays and address arrays
+                // which are the most common in constructor params
+                if (input.type === 'string[]') {
+                  params = params.addStringArray(value);
+                } else if (input.type === 'address[]') {
+                  params = params.addAddressArray(value);
+                } else {
+                  console.warn(`Array type ${input.type} not directly supported. Converting to bytes.`);
+                  // Fallback to bytes for unsupported array types
+                  const bytesValue = Buffer.from(JSON.stringify(value));
+                  params = params.addBytes(bytesValue);
+                }
+              } else {
+                console.warn(`Unsupported parameter type: ${input.type}`);
+                // Default to bytes for unknown types
+                params = params.addBytes(Buffer.from(value.toString()));
+              }
+          }
+        });
+        
+        // Set constructor parameters
+        contractCreateTx = contractCreateTx.setConstructorParameters(params);
+      }
+    }
+      
     console.log(`[${deploymentId}] Signing transaction`);
-    const contractCreateSign = await contractCreateTx.sign(privateKey);
+    const contractCreateSign = await contractCreateTx.freezeWith(client).sign(privateKey);
     
     console.log(`[${deploymentId}] Executing transaction`);
     const contractCreateSubmit = await contractCreateSign.execute(client);

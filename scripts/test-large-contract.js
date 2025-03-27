@@ -4,13 +4,12 @@ const axios = require('axios');
 require('dotenv').config();
 
 // URL to your local endpoint (change as needed)
-const deployUrl = 'http://localhost:3000/api/deploy';
-const directDeployUrl = 'http://localhost:3000/api/direct-deploy';
+const deployUrl = 'http://localhost:3000/api/direct-deploy';
 
 /**
- * Test contract deployment with the new approach
+ * Test contract deployment with the optimized approach
  */
-async function testLargeContractDeployment() {
+async function testContractDeployment() {
   try {
     console.log('🧪 Testing SmartScope Contract Deployment');
     console.log('==========================================');
@@ -26,7 +25,7 @@ async function testLargeContractDeployment() {
     await testDeployment(largeBytecode, 'large');
     
     console.log('\n✅ All tests completed successfully!');
-    console.log('Note: If running on Vercel, the direct deployment approach for large contracts will work within the timeout constraints.');
+    console.log('Note: The direct deployment approach works efficiently within Vercel serverless function time constraints.');
   } catch (error) {
     console.error('❌ Test failed:', error.message);
     if (error.response) {
@@ -42,45 +41,67 @@ async function testLargeContractDeployment() {
 async function testDeployment(bytecode, type) {
   console.log(`Generated ${type} test bytecode: ${bytecode.length} characters (${Math.ceil(bytecode.length/2/1024)} KB)`);
   
-  // Step 1: Deploy with standard endpoint
-  console.log(`Step 1: Attempting deployment with standard endpoint`);
+  // Deploy using direct-deploy endpoint
+  console.log(`Attempting deployment with direct-deploy endpoint`);
   try {
     const deployResponse = await axios.post(deployUrl, {
       bytecode,
-      abi: [] // Empty ABI for testing
+      abi: [], // Empty ABI for testing
+      deploymentId: `test-${type}-${Date.now()}`
     });
     
-    console.log('Initial deployment response:', deployResponse.data);
+    console.log('Deployment response:', deployResponse.data);
     
-    // Check if it's a large contract that needs special handling
-    if (deployResponse.data.isLarge) {
-      console.log('Step 2: Contract identified as large, continuing with direct deployment');
-      
-      // Get deployment ID
-      const deploymentId = deployResponse.data.deploymentId;
-      
-      // Use the direct deployment endpoint for large contracts
-      const directResponse = await axios.post(directDeployUrl, {
-        bytecode,
-        abi: [],
-        deploymentId
-      });
-      
-      console.log('Direct deployment response:', directResponse.data);
-      
-      if (directResponse.data.success) {
-        console.log('✓ Large contract deployment successful');
-        console.log(`  Contract ID: ${directResponse.data.contractId}`);
-        console.log(`  Contract Address: ${directResponse.data.contractAddress}`);
-        console.log(`  Execution time: ${directResponse.data.executionTime}ms`);
-      } else {
-        throw new Error('Large contract deployment failed: ' + (directResponse.data.error || 'Unknown error'));
-      }
-    } else {
-      // Standard deployment worked directly
-      console.log('✓ Standard deployment successful');
+    if (deployResponse.data.success) {
+      console.log('✓ Contract deployment successful');
       console.log(`  Contract ID: ${deployResponse.data.contractId}`);
       console.log(`  Contract Address: ${deployResponse.data.contractAddress}`);
+      console.log(`  Execution time: ${deployResponse.data.executionTime}ms`);
+      
+      // If we have a deploymentId but no contractAddress yet, poll for completion
+      if (deployResponse.data.deploymentId && !deployResponse.data.contractAddress) {
+        console.log(`  Deployment ID: ${deployResponse.data.deploymentId}`);
+        console.log('  Polling for completion...');
+        
+        // Poll for completion
+        let attempts = 0;
+        const maxAttempts = 10;
+        let delay = 2000; // Start with 2 seconds
+        
+        while (attempts < maxAttempts) {
+          attempts++;
+          
+          // Wait before polling
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Increase delay for next attempt (exponential backoff)
+          delay = Math.min(delay * 1.5, 10000); // Cap at 10 seconds
+          
+          // Check deployment status
+          const statusResponse = await axios.get(`${deployUrl}?id=${deployResponse.data.deploymentId}`);
+          
+          console.log(`  Polling attempt ${attempts}:`, statusResponse.data.status);
+          
+          // If deployment completed successfully
+          if (statusResponse.data.status === 'completed' && statusResponse.data.contractAddress) {
+            console.log('✓ Deployment completed successfully');
+            console.log(`  Contract ID: ${statusResponse.data.contractId}`);
+            console.log(`  Contract Address: ${statusResponse.data.contractAddress}`);
+            break;
+          }
+          
+          // If deployment failed
+          if (statusResponse.data.status === 'error') {
+            throw new Error(`Deployment failed: ${statusResponse.data.error}`);
+          }
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.warn('⚠️ Polling timed out - deployment may still be processing');
+        }
+      }
+    } else {
+      throw new Error('Contract deployment failed: ' + (deployResponse.data.error || 'Unknown error'));
     }
     return true;
   } catch (error) {
@@ -112,4 +133,4 @@ function generateContractBytecode(length = 10000) {
 
 // Run the test
 console.log('Starting deployment tests...');
-testLargeContractDeployment().catch(console.error); 
+testContractDeployment().catch(console.error); 

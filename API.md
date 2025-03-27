@@ -135,9 +135,9 @@ Analyzes Solidity code for security issues and optimization opportunities.
 
 ### Contract Deployment
 
-#### `POST /api/deploy`
+#### `POST /api/direct-deploy`
 
-Deploys a compiled smart contract to Hedera Testnet.
+Deploys a compiled smart contract to Hedera Testnet. Optimized for serverless environments with an asynchronous deployment model.
 
 **Request Body:**
 
@@ -145,7 +145,8 @@ Deploys a compiled smart contract to Hedera Testnet.
 {
   "bytecode": "0x608060405234801561001057600080fd5b5060...",
   "abi": [...],
-  "constructorArgs": ["Hello, Hedera!"]
+  "constructorArgs": ["Hello, Hedera!"],
+  "deploymentId": "optional-custom-id-12345"
 }
 ```
 
@@ -154,10 +155,56 @@ Deploys a compiled smart contract to Hedera Testnet.
 ```json
 {
   "success": true,
+  "deploymentId": "deployment-1234567890",
   "contractId": "0.0.1234567",
-  "evmAddress": "0x742f4f7549B39666d7A55b3d5316e7e5dcC86944",
-  "transactionId": "0.0.8765432@1234567890.000000000",
-  "transactionLink": "https://hashscan.io/testnet/transaction/0.0.8765432@1234567890.000000000"
+  "contractAddress": "0x742f4f7549B39666d7A55b3d5316e7e5dcC86944",
+  "executionTime": 1234
+}
+```
+
+For larger contracts or when the deployment takes longer than the serverless function timeout, the response will only include the deploymentId:
+
+```json
+{
+  "success": true,
+  "deploymentId": "deployment-1234567890"
+}
+```
+
+#### `GET /api/direct-deploy?id={deploymentId}`
+
+Retrieves the status of an asynchronous contract deployment.
+
+**Response (Pending):**
+
+```json
+{
+  "deploymentId": "deployment-1234567890",
+  "status": "pending",
+  "timestamp": 1634567890123
+}
+```
+
+**Response (Completed):**
+
+```json
+{
+  "deploymentId": "deployment-1234567890",
+  "status": "completed",
+  "contractId": "0.0.1234567",
+  "contractAddress": "0x742f4f7549B39666d7A55b3d5316e7e5dcC86944",
+  "timestamp": 1634567890123
+}
+```
+
+**Response (Error):**
+
+```json
+{
+  "deploymentId": "deployment-1234567890",
+  "status": "error",
+  "error": "Insufficient gas for contract deployment",
+  "timestamp": 1634567890123
 }
 ```
 

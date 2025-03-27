@@ -69,7 +69,8 @@ export async function deployContract(
   abi: any[],
   constructorArgs: any[] = []
 ): Promise<DeploymentResult> {
-  const response = await fetch('/api/deploy', {
+  // Start deployment with direct-deploy endpoint for Vercel compatibility
+  const response = await fetch('/api/direct-deploy', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -84,21 +85,68 @@ export async function deployContract(
   
   const result = await response.json();
   
-  // Ensure we have a contract address
-  if (!result.contractAddress && result.contractId) {
-    // Convert contract ID to address if needed
-    result.contractAddress = result.contractId;
+  if (!result.success) {
+    throw new Error(result.error || 'Deployment failed');
   }
   
-  if (!result.contractAddress) {
-    throw new Error('No contract address received from deployment');
+  // For immediate deployments that already have the contract address
+  if (result.contractAddress) {
+    return {
+      contractId: result.contractId,
+      contractAddress: result.contractAddress,
+      abi: abi
+    };
   }
   
-  return {
-    contractId: result.contractId,
-    contractAddress: result.contractAddress,
-    abi: abi
-  };
+  // For async deployments that require polling
+  if (result.deploymentId) {
+    // Poll for completion (max 10 attempts with increasing delay)
+    let attempts = 0;
+    const maxAttempts = 10;
+    let delay = 2000; // Start with 2 seconds
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      
+      // Wait before polling
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Increase delay for next attempt (exponential backoff)
+      delay = Math.min(delay * 1.5, 10000); // Cap at 10 seconds
+      
+      // Check deployment status
+      const statusResponse = await fetch(`/api/direct-deploy?id=${result.deploymentId}`, {
+        method: 'GET',
+      });
+      
+      if (!statusResponse.ok) {
+        continue; // Try again if request fails
+      }
+      
+      const status = await statusResponse.json();
+      
+      // If deployment completed successfully
+      if (status.status === 'completed' && status.contractAddress) {
+        return {
+          contractId: status.contractId,
+          contractAddress: status.contractAddress,
+          abi: abi
+        };
+      }
+      
+      // If deployment failed
+      if (status.status === 'error') {
+        throw new Error(status.error || 'Deployment failed');
+      }
+      
+      // If still pending, continue polling
+    }
+    
+    // If we've exhausted attempts
+    throw new Error('Deployment timed out - check deployment status later');
+  }
+  
+  throw new Error('No contract address or deployment ID received');
 }
 
 /**
