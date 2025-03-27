@@ -28,17 +28,37 @@ export default function InteractPage() {
     
     setIsLoading(true);
     
-    // Simulate checking contract exists
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Real contract verification
+      const response = await fetch(`/api/get-contract-abi`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ contractAddress }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Contract not found or not accessible');
+      }
+      
+      // Contract exists, navigate to the contract page
       window.location.href = `/interact/${contractAddress}`;
-    }, 1500);
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        title: 'Contract Not Found',
+        description: error instanceof Error ? error.message : 'Unable to verify contract address',
+        type: 'error',
+      });
+    }
   };
 
   return (
     <div className="min-h-screen pb-20">
       {/* Hero Section */}
-      <section className="relative py-16 md:py-24 mb-12">
+      <section className="relative py-12 md:py-16 mb-4">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden -z-10">
           <motion.div

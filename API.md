@@ -53,6 +53,46 @@ Compiles Solidity code and returns bytecode and ABI.
 }
 ```
 
+#### `POST /api/compile-multi`
+
+Compiles a project with multiple Solidity files and their dependencies.
+
+**Request Body:**
+
+```json
+{
+  "files": {
+    "Token.sol": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\nimport './IERC20.sol';\n\ncontract Token is IERC20 {\n    // contract implementation\n}",
+    "IERC20.sol": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ninterface IERC20 {\n    // interface definition\n}"
+  },
+  "mainFile": "Token.sol",
+  "externalLibraries": ["@openzeppelin/contracts/token/ERC20/ERC20.sol"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "bytecode": "0x608060405234801561001057600080fd5b5060...",
+  "abi": [...],
+  "dependencies": {
+    "IERC20.sol": {
+      "bytecode": "",
+      "abi": [...]
+    }
+  },
+  "warnings": [
+    {
+      "file": "Token.sol",
+      "message": "Warning message",
+      "severity": "low"
+    }
+  ]
+}
+```
+
 ### Contract Analysis
 
 #### `POST /api/analyze`

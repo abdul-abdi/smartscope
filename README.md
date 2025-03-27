@@ -28,6 +28,9 @@ SmartScope is an all-in-one platform for blockchain developers to build, analyze
 - 📚 **Learning Resources** - Comprehensive guides on smart contract development
 - 🧠 **AI Assistant** - Get instant answers about blockchain concepts, Solidity, and Hedera
 - 🔌 **No External Dependencies** - Everything runs in-browser with no wallet requirements
+- 📂 **Multi-File IDE** - Develop complex contract systems with multiple files and dependencies
+- 📦 **External Library Support** - Seamless integration with popular libraries like OpenZeppelin
+- 🔄 **Dependency Management** - Automatic resolution of imports and dependencies between files
 
 ## 🚀 Getting Started
 
@@ -89,8 +92,21 @@ SmartScope provides an end-to-end workflow for smart contract development:
 ### Creating a Smart Contract
 
 1. Navigate to the "Create" page
-2. Write your Solidity code in the editor or select a template
+2. Choose between Simple Editor and Advanced IDE modes:
+   - **Simple Editor**: Write a single Solidity file or choose from templates
+   - **Advanced IDE**: Develop multi-file projects with dependencies
 3. Save your contract when finished
+
+### Using the Advanced Multi-File IDE
+
+1. Click "Switch to Advanced IDE" from the Create page
+2. Create files and folders with the "New" button
+3. Organize your project structure:
+   - Create contract interfaces in separate files
+   - Import libraries and dependencies
+   - Manage project organization with folders
+4. External libraries like OpenZeppelin are automatically detected and linked
+5. Files with dependencies are compiled together
 
 ### Analyzing a Contract
 
@@ -131,18 +147,18 @@ Comprehensive documentation is available in the following files:
 - [SECURITY.md](SECURITY.md) - Security policy and best practices
 - [CHANGELOG.md](CHANGELOG.md) - Version history and changes
 
-## 🛠️ Project Structure
+## ��️ Project Structure
 
 ```
 smartscope/
 ├── app/                  # Next.js app directory
 │   ├── api/              # API routes for contract interactions
-│   ├── create/           # Contract creation pages
+│   ├── create/           # Contract creation pages and Multi-File IDE
 │   ├── interact/         # Contract interaction pages
 │   ├── learn/            # Educational content
 │   └── roadmap/          # Platform roadmap
 ├── components/           # Global components
-│   ├── providers/        # Context providers
+│   ├── providers/        # Context providers including FileSystem
 │   └── ui/               # UI components including AI Assistant
 ├── public/               # Static assets
 └── lib/                  # Utility functions
@@ -154,6 +170,8 @@ SmartScope is in active development with the following roadmap:
 
 ### Current Features
 - Smart Contract Creation and Analysis
+- Multi-File IDE with dependency management
+- External library support (OpenZeppelin, etc.)
 - Dynamic Contract Interaction (supports any contract type)
 - Advanced ABI Discovery through bytecode analysis
 - Live Contract State Visualization
@@ -220,6 +238,7 @@ This project is licensed under the [ISC License](LICENSE)
 - [Solidity Documentation](https://docs.soliditylang.org/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Gemini API Documentation](https://ai.google.dev/docs)
+- [OpenZeppelin Documentation](https://docs.openzeppelin.com/) - For library integration
 
 ## 🙏 Acknowledgements
 

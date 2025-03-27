@@ -274,9 +274,28 @@ const SolidityEditor: React.FC<SolidityEditorProps> = ({
 }) => {
   const { theme, resolvedTheme } = useTheme();
   const [editorTheme, setEditorTheme] = useState('solidity-light');
+  const [fontSize, setFontSize] = useState(14);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const hasManuallySetTheme = useRef(false);
+
+  // Handle font size based on window width
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setFontSize(window.innerWidth < 640 ? 12 : 14);
+      }
+    };
+
+    // Set initial font size
+    handleResize();
+
+    // Add event listener
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
 
   // Apply theme directly to editor DOM
   const applyEditorThemingSafely = (isDark) => {
@@ -575,7 +594,7 @@ const SolidityEditor: React.FC<SolidityEditorProps> = ({
   }, [validationResults, updateEditorDecorations]);
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '400px' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: '300px', position: 'relative' }}>
       {MonacoEditor && (
         <MonacoEditor
           value={value}
@@ -587,13 +606,18 @@ const SolidityEditor: React.FC<SolidityEditorProps> = ({
             readOnly: false,
             cursorStyle: "line",
             automaticLayout: true,
-            minimap: { enabled: true },
+            minimap: { 
+              enabled: true,
+              maxColumn: 60,
+              scale: 0.8,
+              showSlider: "mouseover" 
+            },
             folding: true,
             lineNumbers: "on",
             renderLineHighlight: "all",
             scrollBeyondLastLine: true,
             glyphMargin: true,
-            fontSize: 14,
+            fontSize: fontSize,
             fontFamily: "Menlo, Monaco, 'Courier New', monospace",
             scrollbar: {
               useShadows: false,
@@ -601,14 +625,18 @@ const SolidityEditor: React.FC<SolidityEditorProps> = ({
               horizontalHasArrows: true,
               vertical: "visible",
               horizontal: "visible",
-              verticalScrollbarSize: 12,
-              horizontalScrollbarSize: 12,
+              verticalScrollbarSize: 10,
+              horizontalScrollbarSize: 10,
               alwaysConsumeMouseWheel: false
-            }
+            },
+            wordWrap: 'on',
+            wrappingStrategy: 'advanced'
           }}
           onChange={(value) => onChange(value || "")}
           beforeMount={(monaco) => {
             configureMonaco(monaco);
+            // Add responsive styles for editor
+            monaco.editor.EditorOptions.fontSize.defaultValue = fontSize;
           }}
           onMount={(editor, monaco) => {
             editorRef.current = editor;
@@ -653,6 +681,30 @@ const SolidityEditor: React.FC<SolidityEditorProps> = ({
                 // Otherwise, prevent the event from propagating to avoid double scrolling
                 e.stopPropagation();
               }, { passive: true });
+              
+              // Add resize listener to adjust editor options for small screens
+              const handleResize = () => {
+                const isMobile = window.innerWidth < 640;
+                editor.updateOptions({
+                  fontSize: isMobile ? 12 : 14,
+                  minimap: { 
+                    enabled: !isMobile,
+                    maxColumn: isMobile ? 30 : 60,
+                    scale: isMobile ? 0.6 : 0.8
+                  },
+                  lineNumbers: isMobile ? "off" : "on"
+                });
+                editor.layout();
+              };
+              
+              window.addEventListener('resize', handleResize);
+              // Initial call to set correct options
+              handleResize();
+              
+              // Clean up on unmount
+              return () => {
+                window.removeEventListener('resize', handleResize);
+              };
             }
             
             // If there are validation results, update decorations

@@ -12,28 +12,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced analytics framework preparation
 - Enhanced AI features research
 
-## [1.0.0] - 2024-03-25
+## [1.2.0] - 2025-03-27
 
 ### Added
-- Initial public release
-- Smart contract creation and editing interface
-- Contract deployment to Hedera Testnet
-- Smart contract analysis with security checks
-- Dynamic contract interaction interface
+
+- **Multi-File IDE**: Added advanced IDE with full file system support
+  - File creation, organization, and management
+  - Folder structure support
+  - Tabbed interface for editing multiple files
+  - Support for project-based development
+- **External Library Integration**:
+  - OpenZeppelin library support
+  - Automatic dependency resolution
+  - Version compatibility detection
+  - External import handling
+- **Dependency Management**:
+  - Automatic resolution of imports between files
+  - Circular dependency detection
+  - Visual indicators for external libraries and missing imports
+- **Project Templates**:
+  - ERC20 token template
+  - NFT contract template
+  - DAO governance template
+  - Crowdfunding campaign template
+- **Enhanced Compilation Process**:
+  - Multi-file compilation with proper dependency resolution
+  - Progress tracking for complex compilation
+  - Improved error handling with specific errors for library issues
+
+### Fixed
+
+- Fixed layout stability issues with editor components
+- Improved performance with React memo optimizations
+- Enhanced error handling for external library imports
+- Fixed compiler version compatibility issues
+
+### Changed
+
+- UI enhancements for better project navigation
+- Updated documentation to include multi-file development workflows
+
+## [1.1.0] - 2025-01-15
+
+### Added
+
+- Universal contract interaction for any contract type
 - Advanced ABI discovery through bytecode analysis
 - Live contract state visualization
-- AI Assistant with Gemini integration
-- Learning resources for blockchain development
-- Interactive roadmap
+- Enhanced security analysis
 
-### Technical
-- Next.js application with App Router
-- Hedera SDK integration
-- Mirror Node API integration
-- Solidity compilation with solc-js
-- UI with Tailwind CSS and shadcn components
-- Framer Motion animations
-- Gemini API for AI Assistant
+### Fixed
+
+- Improved contract deployment reliability
+- Fixed function parameter encoding issues
+- Enhanced error handling for deployment failures
+
+## [1.0.0] - 2024-12-01
+
+### Added
+
+- Initial release of SmartScope
+- Basic smart contract creation and editing
+- Contract deployment to Hedera Testnet
+- Simple contract interaction interface
+- SmartScope AI Assistant integration
+- Learning resources and documentation
 
 ## [0.9.0] - 2024-03-22
 

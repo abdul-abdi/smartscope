@@ -382,19 +382,34 @@ export async function POST(request: Request) {
         // Try to extract the return value from the transaction receipt
         try {
           if (typeof result === 'object' && result.transactionHash) {
-            // Wait for a moment to let the transaction complete
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Use proper transaction polling instead of arbitrary timeout
+            let receipt = null;
+            let attempts = 0;
+            const maxAttempts = 10;
             
-            // Query for transaction receipt and logs
-            const txReceiptResponse = await executeJsonRpcCall('eth_getTransactionReceipt', [result.transactionHash]);
+            while (!receipt && attempts < maxAttempts) {
+              attempts++;
+              console.log(`Polling for transaction receipt: attempt ${attempts}/${maxAttempts}`);
+              
+              // Query for transaction receipt and logs
+              receipt = await executeJsonRpcCall('eth_getTransactionReceipt', [result.transactionHash]);
+              
+              if (!receipt && attempts < maxAttempts) {
+                // Exponential backoff with max wait time of ~2 seconds
+                const backoffTime = Math.min(500 * Math.pow(1.5, attempts-1), 2000);
+                await new Promise(resolve => setTimeout(resolve, backoffTime));
+              }
+            }
             
-            if (txReceiptResponse) {
-              txData = txReceiptResponse;
+            if (receipt) {
+              txData = receipt;
               
               // Extract return value if available
               if (txData && txData.logs && txData.logs.length > 0) {
                 returnValue = txData.logs[0].data;
               }
+            } else {
+              console.warn(`${logPrefix}Transaction receipt not available after multiple attempts`);
             }
           }
         } catch (receiptError) {

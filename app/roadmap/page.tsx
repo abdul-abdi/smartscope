@@ -71,6 +71,28 @@ const roadmapItems = [
           'Support for any contract type',
           'Reliable state variable reading'
         ]
+      },
+      {
+        title: 'Multi-File IDE',
+        description: 'Develop complex contract ecosystems with dependencies',
+        icon: GitBranch,
+        details: [
+          'File system organization',
+          'Dependency management',
+          'Contract inheritance support',
+          'Project-based development'
+        ]
+      },
+      {
+        title: 'External Library Integration',
+        description: 'Seamless support for popular Solidity libraries',
+        icon: Cpu,
+        details: [
+          'OpenZeppelin library support',
+          'Automatic dependency resolution',
+          'External import handling',
+          'Version compatibility detection'
+        ]
       }
     ]
   },
@@ -176,7 +198,7 @@ export default function RoadmapPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <section className="relative py-16 md:py-24">
+      <section className="relative py-12 md:py-16 mb-0">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden -z-10">
           <motion.div
@@ -217,7 +239,7 @@ export default function RoadmapPage() {
               SmartScope Roadmap
             </h1>
             <motion.p
-              className="text-xl text-foreground/80 mb-8"
+              className="text-xl text-foreground/80 mb-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -241,7 +263,7 @@ export default function RoadmapPage() {
       </section>
 
       {/* Roadmap Content */}
-      <section className="py-12">
+      <section className="pt-2 pb-4">
         <div className="container mx-auto px-4">
           <div className="space-y-24 relative">
             {/* Vertical timeline line */}

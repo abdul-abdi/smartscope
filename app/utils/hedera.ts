@@ -17,7 +17,22 @@ export async function initializeClient(operatorId?: string, operatorKey?: string
     }
 
     // Create the private key object from the string
-    const privateKey = PrivateKey.fromString(operatorKey);
+    // Check if the key looks like a DER-encoded key or a hex key
+    let privateKey;
+    try {
+      // First try to parse as ED25519 key
+      if (operatorKey.startsWith('302e020100300506032b657004')) {
+        privateKey = PrivateKey.fromStringDer(operatorKey);
+        console.log("Using DER format private key");
+      } else {
+        privateKey = PrivateKey.fromStringED25519(operatorKey);
+        console.log("Using ED25519 format private key");
+      }
+    } catch (error) {
+      // Fallback to generic parsing
+      console.warn("Using fallback key parsing, this may not be optimal");
+      privateKey = PrivateKey.fromString(operatorKey);
+    }
     
     // Create and initialize the client
     const client = Client.forTestnet();

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, ArrowRight, Check, CheckCircle, Code, Copy, ExternalLink, FileCode, Loader2, Shield, ChevronDown, ChevronUp, AlertOctagon, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, Check, CheckCircle, Code, Copy, ExternalLink, FileCode, Loader2, Shield, ChevronDown, ChevronUp, AlertOctagon, X, Code2Icon } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Progress } from '../../components/ui/progress';
 import { Badge } from '../../components/ui/badge';
@@ -13,6 +13,8 @@ import { Card, CardContent } from '../../components/ui/card';
 import { AlertTriangle, Info } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
+import { useToast } from '../../components/providers/toast-provider';
+import { useState } from 'react';
 
 interface ActionButtonsProps {
   handleValidate: () => Promise<void>;
@@ -146,71 +148,25 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         </TooltipProvider>
       </div>
       
-      {/* Deployment Status Card - Only shows when actively deploying or deployed */}
-      {(isDeploying || contractAddress) && (
+      {/* Only show deployment progress during deployment */}
+      {isDeploying && (
         <div className="mt-6 border border-border/30 rounded-lg p-4 bg-background/70">
           <h3 className="text-sm font-medium mb-2 flex items-center">
-            {isDeploying ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" />
-                Deployment Status
-              </>
-            ) : (
-              <>
-                <Check className="h-4 w-4 mr-2 text-green-500" />
-                Deployment Complete
-              </>
-            )}
+            <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" />
+            Deployment Status
           </h3>
           
-          {isDeploying && !contractAddress && (
-            <div className="space-y-2">
-              <Progress 
-                value={deploymentProgress} 
-                className="h-2"
-                indicatorClassName="bg-primary"
-              />
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">{deploymentStage || 'Preparing deployment...'}</span>
-                <span className="text-xs font-medium">{deploymentProgress}%</span>
-              </div>
+          <div className="space-y-2">
+            <Progress 
+              value={deploymentProgress} 
+              className="h-2"
+              indicatorClassName="bg-primary"
+            />
+            <div className="flex justify-between">
+              <span className="text-xs text-muted-foreground">{deploymentStage || 'Preparing deployment...'}</span>
+              <span className="text-xs font-medium">{deploymentProgress}%</span>
             </div>
-          )}
-          
-          {contractAddress && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-2 bg-background rounded border border-border/50 text-sm">
-                <code className="text-xs break-all overflow-x-auto max-w-[180px] sm:max-w-[240px] scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent pr-2">{contractAddress}</code>
-                <button 
-                  onClick={handleCopyContract}
-                  className="ml-2 text-muted-foreground hover:text-foreground p-1 rounded hover:bg-background/50 flex-shrink-0"
-                >
-                  {copied ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <div className="flex justify-between gap-2">
-                <Button size="sm" variant="outline" onClick={goToContractPage} className="flex-1">
-                  <ArrowRight className="mr-1 h-3 w-3" />
-                  Interact
-                </Button>
-                <Link 
-                  href={`https://hashscan.io/testnet/contract/${contractAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1"
-                >
-                  <Button size="sm" variant="secondary" className="w-full">
-                    <ExternalLink className="mr-1 h-3 w-3" />
-                    View on Hashscan
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>
@@ -232,6 +188,9 @@ interface StatusPanelProps {
   getContractDetails: () => React.ReactNode | null;
   getWarningInfo: (warning: string) => { description: string, severity: 'high' | 'medium' | 'low', fix: string };
   warnings: string[];
+  deploymentProgress: number;
+  deploymentStage: string;
+  deploymentSuccess: boolean;
 }
 
 export const StatusPanel: React.FC<StatusPanelProps> = ({
@@ -248,8 +207,28 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({
   explainCompilerError,
   getContractDetails,
   getWarningInfo,
-  warnings
+  warnings,
+  deploymentProgress,
+  deploymentStage,
+  deploymentSuccess
 }) => {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAddress = () => {
+    if (contractAddress) {
+      navigator.clipboard.writeText(contractAddress);
+      setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Contract address copied to clipboard",
+        type: "success"
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const commonSecurityIssues = [
     { name: "Reentrancy", description: "A vulnerability where external calls can call back into the contract before the first invocation is complete", impact: "high", avoided: securityScore > 75 },
     { name: "Integer Overflow/Underflow", description: "Arithmetic operations exceeding the data type's range", impact: "high", avoided: true },
@@ -438,6 +417,87 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({
           )}
         </div>
         
+        {/* Deployment Status */}
+        <div className="border-b border-border/30 pb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-foreground/80">Deployment</h3>
+            {contractAddress && deploymentSuccess ? (
+              <div className="bg-green-500/20 p-2 rounded-full">
+                <Check className="h-5 w-5 text-green-500" />
+              </div>
+            ) : isDeploying ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : null}
+          </div>
+          
+          <p className="text-sm text-foreground/60 mb-2">
+            {!contractAddress && !isDeploying && 'Not deployed yet'}
+            {isDeploying && 'Deploying contract...'}
+            {contractAddress && deploymentSuccess && 'Contract successfully deployed'}
+          </p>
+
+          {/* Show deployment progress when deploying */}
+          {isDeploying && (
+            <div className="mt-4 space-y-2">
+              <Progress 
+                value={deploymentProgress} 
+                className="h-2"
+                indicatorClassName="bg-primary"
+              />
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">{deploymentStage || 'Preparing deployment...'}</span>
+                <span className="text-xs font-medium">{deploymentProgress}%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Show deployment details when contract is deployed */}
+          {contractAddress && deploymentSuccess && (
+            <div className="mt-4 space-y-4">
+              <div className="bg-background rounded-lg border p-4">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Contract Address</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyAddress}
+                      className="h-8 px-2"
+                    >
+                      {copied ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <code className="text-xs break-all bg-muted/50 rounded-md p-2">
+                    {contractAddress}
+                  </code>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                  <Button
+                    onClick={() => router.push(`/interact/${contractAddress}`)}
+                    className="flex-1 h-8 text-xs"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Interact with Contract
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(`https://hashscan.io/testnet/contract/${contractAddress}`, '_blank')}
+                    className="flex-1 h-8 text-xs"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View on HashScan
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
         {/* Security Score */}
         {validationResults && (
           <div className="border-b border-border/30 pb-4 mb-4">
@@ -548,6 +608,175 @@ export const TipsPanel: React.FC = () => {
             <p className="text-sm text-foreground/80">{tip}</p>
           </motion.div>
         ))}
+      </div>
+    </motion.div>
+  );
+};
+
+export const IDEDetailsPanel: React.FC<{ mode: 'simple' | 'advanced' }> = ({ mode }) => {
+  const simpleIDEDetails = [
+    {
+      title: "Simple Editor Features",
+      items: [
+        {
+          name: "Single-file Contract Editing",
+          description: "Edit one contract at a time with real-time syntax highlighting and error checking"
+        },
+        {
+          name: "Sample Contract Templates",
+          description: "Choose from pre-built contract templates for common use cases (tokens, NFTs, storage)"
+        },
+        {
+          name: "Auto-validation",
+          description: "Get instant feedback on syntax errors, security issues, and gas optimization"
+        },
+        {
+          name: "Security Scoring",
+          description: "View your contract's security score and specific vulnerability warnings"
+        },
+        {
+          name: "One-Click Deployment",
+          description: "Deploy directly to Hedera testnet without configuration complexity"
+        }
+      ]
+    },
+    {
+      title: "Workflow Guide",
+      items: [
+        {
+          name: "Step 1: Select a template or create custom code",
+          description: "Begin with a sample contract or write your own from scratch"
+        },
+        {
+          name: "Step 2: Validate your contract",
+          description: "Check for syntax errors and security vulnerabilities before compilation"
+        },
+        {
+          name: "Step 3: Compile to bytecode",
+          description: "Transform your Solidity code into bytecode ready for deployment"
+        },
+        {
+          name: "Step 4: Deploy to testnet",
+          description: "Push your contract to Hedera testnet with a single click"
+        },
+        {
+          name: "Step 5: Interact with your contract",
+          description: "Connect to your deployed contract to execute functions and view state"
+        }
+      ]
+    }
+  ];
+
+  const advancedIDEDetails = [
+    {
+      title: "Advanced IDE Capabilities",
+      items: [
+        {
+          name: "Multi-file Project Support",
+          description: "Manage complex projects with multiple contract files and dependencies"
+        },
+        {
+          name: "File System Explorer",
+          description: "Create, rename, and organize files and folders with an intuitive file browser"
+        },
+        {
+          name: "Dependency Management",
+          description: "Automatic resolution of imports between files with circular dependency detection"
+        },
+        {
+          name: "External Library Integration",
+          description: "Seamless support for OpenZeppelin and other external Solidity libraries"
+        },
+        {
+          name: "Project Templates",
+          description: "Start with pre-configured templates for ERC20, NFT, DAO, and crowdfunding projects"
+        }
+      ]
+    },
+    {
+      title: "Professional Development",
+      items: [
+        {
+          name: "Contract Inheritance",
+          description: "Create complex contracts with multiple inheritance across multiple files"
+        },
+        {
+          name: "Smart Compilation",
+          description: "Intelligently compiles all dependent files together with proper import resolution"
+        },
+        {
+          name: "Library Version Detection",
+          description: "Automatic detection of compatible library versions based on usage patterns"
+        },
+        {
+          name: "Enhanced Editor Features",
+          description: "Tabbed editing, syntax highlighting, and real-time validation across all files"
+        },
+        {
+          name: "Professional Project Structure",
+          description: "Organize your contracts with industry-standard folder structures and patterns"
+        }
+      ]
+    }
+  ];
+
+  const details = mode === 'simple' ? simpleIDEDetails : advancedIDEDetails;
+
+  return (
+    <motion.div 
+      className="bg-background/50 backdrop-blur-sm rounded-2xl p-6 border border-border/50 shadow-lg max-w-full overflow-hidden mt-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.6 }}
+    >
+      <h2 className="text-2xl font-bold mb-6 flex items-center">
+        <Code2Icon className="h-6 w-6 mr-3 text-primary" />
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
+          {mode === 'simple' ? 'Simple Editor' : 'Advanced IDE'} Guide
+        </span>
+      </h2>
+      
+      <div className="grid md:grid-cols-2 gap-8 mt-6">
+        {details.map((section, sectionIndex) => (
+          <div key={sectionIndex} className="space-y-5">
+            <h3 className="text-lg font-semibold text-foreground/90 border-b border-border/40 pb-2">
+              {section.title}
+            </h3>
+            <div className="space-y-5">
+              {section.items.map((item, itemIndex) => (
+                <motion.div 
+                  key={itemIndex}
+                  className="p-4 rounded-lg hover:bg-background/80 border border-border/20 hover:border-primary/20 transition-all duration-200"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.7 + (itemIndex * 0.1) }}
+                >
+                  <div className="flex items-start">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                      <span className="text-primary text-sm font-bold">{itemIndex + 1}</span>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground mb-1">{item.name}</h4>
+                      <p className="text-sm text-foreground/70">{item.description}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 pt-4 border-t border-border/30">
+        <div className="flex items-center space-x-2 text-sm text-foreground/60">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <p>
+            <span className="font-medium text-foreground/80">Tip:</span> {' '}
+            {mode === 'simple' 
+              ? "For simple contracts or learning, the Simple Editor provides everything you need. Switch to Advanced IDE for complex multi-file projects." 
+              : "The Advanced IDE offers a professional development experience. You can switch back to the Simple Editor for quick standalone contracts."}
+          </p>
+        </div>
       </div>
     </motion.div>
   );

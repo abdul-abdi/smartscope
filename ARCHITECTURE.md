@@ -1,110 +1,141 @@
 # SmartScope Architecture
 
-This document provides an overview of SmartScope's architecture, helping developers understand how the different components work together.
+This document outlines the high-level architecture of the SmartScope platform, detailing key components, data flows, and design decisions.
 
 ## System Overview
 
-SmartScope is a Next.js application that provides a complete platform for smart contract development on Hedera Testnet. The application follows a client-side architecture with specific server components for API integration.
+SmartScope is a Next.js application that provides a comprehensive platform for smart contract development, analysis, deployment, and interaction on the Hedera network.
+
+### Core Components
 
 ```
-┌─────────────────────────────────┐
-│ Client (Next.js)                │
-├─────────────────────────────────┤
-│ ┌─────────────┐ ┌─────────────┐ │
-│ │ UI          │ │ State Mgmt  │ │
-│ │ Components  │ │ Context API │ │
-│ └─────────────┘ └─────────────┘ │
-├─────────────────────────────────┤
-│ ┌─────────────┐ ┌─────────────┐ │
-│ │ API Routes  │ │ Lib Utilities│ │
-│ └─────────────┘ └─────────────┘ │
-└─────────────────────────────────┘
-          │                 ▲
-          ▼                 │
-┌─────────────────────────────────┐
-│ External Services               │
-├─────────────────────────────────┤
-│ ┌─────────────┐ ┌─────────────┐ │
-│ │ Hedera      │ │ Hash.io API │ │
-│ │ Testnet     │ │             │ │
-│ └─────────────┘ └─────────────┘ │
-├─────────────────────────────────┤
-│ ┌─────────────┐ ┌─────────────┐ │
-│ │ Mirror Node │ │ Gemini API  │ │
-│ │ API         │ │ (AI)        │ │
-│ └─────────────┘ └─────────────┘ │
-└─────────────────────────────────┘
+smartscope/
+├── app/                  # Next.js app directory (App Router)
+│   ├── api/              # API routes for contract interactions
+│   ├── create/           # Contract creation and Multi-File IDE
+│   ├── interact/         # Contract interaction interface
+│   ├── learn/            # Educational content
+│   └── roadmap/          # Platform roadmap
+├── components/           # Shared UI components
+│   ├── providers/        # Context providers
+│   └── ui/               # UI components
+├── lib/                  # Utility functions and shared logic
+└── public/               # Static assets
 ```
 
-## Core Components
+## Key Subsystems
 
-### Application Structure
+### 1. File System and Multi-File IDE
 
-- **app/**: Main application pages (Next.js app router)
-  - **create/**: Smart contract creation interface
-  - **interact/**: Contract interaction functionality
-  - **learn/**: Educational resources
-  - **roadmap/**: Project roadmap
-  - **api/**: Backend API routes for Hedera integration
+The Multi-File IDE is built around a virtual file system that allows developers to work with complex project structures.
 
-- **components/**: Reusable UI components
-  - **ui/**: Generic UI components (buttons, forms, etc.)
-  - **providers/**: Context providers for global state
+#### Components:
 
-- **lib/**: Utility functions and shared logic
-  - Hedera SDK integration
-  - Solidity compilation
-  - Contract analysis
+- **FileSystemProvider**: A React context provider that manages the file system state:
+  - Files and folders structure
+  - File content updates
+  - Selection and navigation
+  - Persistence of file system state
 
-### Key Features Implementation
+- **MultiFileIDE**: The main IDE component integrating:
+  - File explorer interface
+  - Editor area with tabs
+  - Toolbar and action buttons
+  - Compilation status indicators
 
-#### Smart Contract Analysis
+- **Dependency Management**:
+  - Automatic import resolution
+  - External library detection
+  - Circular dependency detection 
+  - Visual indication of dependencies
 
-We use a specialized parser to analyze Solidity code and provide security insights. The analysis happens in two phases:
-1. Syntax and structure validation
-2. Security pattern matching
+#### Key Features:
 
-#### Contract Deployment
+- **Multi-file Editing**: Support for editing multiple files with tabbed interface
+- **Project Management**: Creation, organization, and management of files and folders
+- **External Libraries**: Integration with OpenZeppelin and other Solidity libraries
+- **Smart Compilation**: Compilation of multiple files with proper dependency resolution
+- **Project Templates**: Pre-configured templates for common contract types
 
-The deployment process uses the Hedera SDK to:
-1. Compile the Solidity code
-2. Generate the bytecode and ABI
-3. Create and sign the transaction
-4. Submit to the Hedera Testnet
+### 2. Contract Compilation and Analysis
 
-#### ABI Discovery
+#### Components:
 
-For contract interaction, we:
-1. Query the contract bytecode from the blockchain
-2. Use signature matching to identify function selectors
-3. Generate a dynamic interface based on discovered functions
+- **Solidity Compiler Integration**: API routes that interface with solc-js
+- **Multi-file Compilation**: Logic for compiling contracts with dependencies
+- **Security Analysis**: Static analysis of contract code
+- **Validation**: Syntax and semantic validation
 
-#### AI Assistant
+### 3. Hedera Integration
 
-The AI Assistant uses:
-1. Gemini API integration for natural language processing
-2. Context-aware prompting with blockchain knowledge
-3. Real-time chat interface with streaming responses
+#### Components:
+
+- **Deployment Service**: Smart contract deployment to Hedera Testnet
+- **Mirror Node Integration**: Interaction with deployed contracts
+- **Transaction Handling**: Creation and submission of transactions
+
+### 4. UI Framework
+
+#### Components:
+
+- **shadcn/ui**: Component library foundation
+- **TailwindCSS**: Styling framework
+- **Framer Motion**: Animation library
+- **Context Providers**: State management
 
 ## Data Flow
 
-1. User creates or uploads a smart contract
-2. Code is analyzed for security and optimizations
-3. Contract is compiled and deployed to Hedera Testnet
-4. Contract address is generated and stored in session
-5. User can interact with contract functions through dynamic interface
-6. Results of function calls are retrieved and displayed
+1. **Contract Creation**:
+   - User enters code in the Multi-File IDE
+   - Code is validated and compiled
+   - Compilation artifacts are generated (bytecode, ABI)
 
-## Security Model
+2. **Contract Deployment**:
+   - Bytecode is deployed to Hedera Testnet
+   - Transaction receipt is processed
+   - Contract address is returned and stored
 
-- All interactions with Hedera are signed server-side
-- No private keys are exposed to the client
-- User sessions are ephemeral and not stored long-term
+3. **Contract Interaction**:
+   - User navigates to interaction page with contract address
+   - Contract interface is discovered using bytecode analysis
+   - User can call contract functions and view state
 
-## Future Architecture Extensions
+## Design Decisions
 
-As outlined in our roadmap, future architecture will include:
-- Multi-chain support with abstraction layers
-- Enhanced analytics with specialized data processing
-- Advanced AI integration directly into the workflow
-- Community features with secure sharing mechanisms 
+### 1. Virtual File System
+
+The file system is implemented as a virtual tree structure in memory with persistence to localStorage, avoiding the need for a backend while providing a full IDE experience.
+
+### 2. Multi-file Compilation
+
+The compilation process first analyzes all imports and dependencies, then compiles each file in the correct order, finally linking everything together.
+
+### 3. External Library Support
+
+External libraries like OpenZeppelin are supported through:
+- Automatic detection of imports
+- Library version compatibility analysis
+- Dependency resolution during compilation
+- Documentation links for easy reference
+
+### 4. Responsive UI
+
+The IDE UI is designed to be responsive with:
+- Collapsible sidebar for file explorer
+- Adaptive layouts for different screen sizes
+- Persistent tab state for session continuity
+- Real-time feedback for compilation and deployment
+
+## Performance Considerations
+
+- **Memoization**: Extensive use of React.memo and useCallback to prevent unnecessary re-renders
+- **Virtual Rendering**: Efficient rendering of large file structures
+- **Async Operations**: Non-blocking compilation and deployment processes
+- **Persistent State**: Browser storage for session persistence
+
+## Future Architecture Enhancements
+
+- **Collaborative Editing**: Real-time collaboration features
+- **Version Control**: Integration with Git-like functionality
+- **Custom Plugin System**: Extensibility through plugins
+- **Advanced Testing Framework**: Integrated testing capabilities 

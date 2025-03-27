@@ -222,7 +222,7 @@ const WalletContractsPage = () => {
   return (
     <div className="min-h-screen pb-20">
       {/* Header */}
-      <section className="relative py-16 md:py-24">
+      <section className="relative py-12 md:py-16 mb-0">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden -z-10">
           <motion.div
@@ -265,7 +265,7 @@ const WalletContractsPage = () => {
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-indigo-500">
               Wallet Contract Explorer
             </h1>
-            <p className="text-xl text-foreground/80 mb-8">
+            <p className="text-xl text-foreground/80 mb-2">
               Discover all smart contracts deployed by a wallet address on Hedera testnet
             </p>
           </motion.div>
@@ -273,7 +273,7 @@ const WalletContractsPage = () => {
       </section>
 
       {/* Wallet Search Form */}
-      <section className="py-8">
+      <section className="pt-2 pb-4">
         <div className="container mx-auto px-4">
           <motion.div
             className="max-w-2xl mx-auto bg-background/50 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 p-6 md:p-8"

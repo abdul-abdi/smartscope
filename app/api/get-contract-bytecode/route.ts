@@ -583,7 +583,10 @@ async function lookupFunctionSignatures(selectors: Record<string, any>) {
       
       // Small delay between batches to be nice to the API
       if (i + batchSize < unknownSelectors.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Rate limiting approach instead of artificial timeout
+        const rateLimitDelay = batchSize * 50; // 50ms per selector is more appropriate
+        console.log(`Rate limiting: waiting ${rateLimitDelay}ms before next batch`);
+        await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
       }
     }
   }

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { ScrollArea } from '../../components/ui/scroll-area';
@@ -10,7 +10,7 @@ import { Progress } from '../../components/ui/progress';
 import { Card, CardContent } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { AlertCircle, Check, Code, Loader2, ArrowRight, FileCode, Shield, Copy, ExternalLink, Clipboard, CheckCircle, Info, AlertTriangle, InfoIcon, FileUpIcon, AlertTriangleIcon, Code2Icon } from 'lucide-react';
+import { AlertCircle, Check, Code, Loader2, ArrowRight, FileCode, Shield, Copy, ExternalLink, Clipboard, CheckCircle, Info, AlertTriangle, InfoIcon, FileUpIcon, AlertTriangleIcon, Code2Icon, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
@@ -19,7 +19,19 @@ import { sampleContracts, getDefaultSampleContract } from '../data/sample-contra
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import SolidityEditor from './SolidityEditor';
-import { ActionButtons, StatusPanel, TipsPanel } from './ButtonActions';
+import { ActionButtons, StatusPanel, TipsPanel, IDEDetailsPanel } from './ButtonActions';
+import MultiFileIDE, { MultiFileIDEHandle } from './MultiFileIDE';
+import { FileSystemProvider } from '../../components/providers/file-system-provider';
+import { ToastProvider, useToast } from '../../components/providers/toast-provider';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
 
 // Simple Toggle Switch component
 const Switch = ({ checked, onChange, className = "" }) => {
@@ -36,6 +48,140 @@ const Switch = ({ checked, onChange, className = "" }) => {
   );
 };
 
+// Utility function to parse constructor inputs from ABI
+function parseConstructorInputs(abi: any[]) {
+  const constructor = abi.find(item => item.type === 'constructor');
+  return constructor ? constructor.inputs || [] : [];
+}
+
+// Component to render constructor argument form
+function ConstructorForm({ inputs, onChange }: { 
+  inputs: { name: string; type: string; }[]; 
+  onChange: (values: Record<string, any>) => void;
+}) {
+  const [values, setValues] = useState<Record<string, any>>({});
+
+  const handleInputChange = (name: string, value: string) => {
+    const newValues = { ...values, [name]: value };
+    setValues(newValues);
+    onChange(newValues);
+  };
+
+  // Format input values based on their type for submission
+  const formatValue = (type: string, value: string) => {
+    try {
+      if (type.includes('int')) {
+        // For integer types
+        return BigInt(value).toString();
+      } else if (type === 'bool') {
+        // For boolean types
+        return value.toLowerCase() === 'true';
+      } else if (type.includes('[]')) {
+        // For array types
+        return JSON.parse(value);
+      } else {
+        // For string, address, bytes, etc.
+        return value;
+      }
+    } catch (error) {
+      console.error(`Error formatting ${type} value:`, error);
+      return value;
+    }
+  };
+
+  return (
+    <div className="space-y-4 my-4">
+      {inputs.map((input) => (
+        <div key={input.name} className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor={input.name} className="text-right">
+            {input.name} <span className="text-xs text-muted-foreground">({input.type})</span>
+          </Label>
+          <div className="col-span-3">
+            <Input
+              id={input.name}
+              placeholder={`Enter ${input.type} value`}
+              onChange={(e) => handleInputChange(input.name, e.target.value)}
+              className="w-full"
+            />
+            {input.type.includes('[]') && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter array as JSON, e.g. [1,2,3] or ["a","b"]
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Add a new DeploymentProgress component for complex contracts
+function DeploymentProgress({ stage, progress, error }: { 
+  stage: string; 
+  progress: number;
+  error?: string;
+}) {
+  // Define the deployment stages
+  const stages = [
+    { id: 'prepare', label: 'Preparing Contract' },
+    { id: 'link', label: 'Linking Libraries' },
+    { id: 'compile', label: 'Final Compilation' },
+    { id: 'deploy', label: 'Deploying to Hedera' },
+    { id: 'confirm', label: 'Confirming Transaction' },
+    { id: 'complete', label: 'Deployment Complete' }
+  ];
+  
+  // Find the current stage index
+  const currentStageIndex = stages.findIndex(s => s.id === stage);
+  
+  return (
+    <div className="my-4">
+      <div className="flex justify-between mb-2">
+        <div className="text-sm font-medium">Deployment Progress</div>
+        <div className="text-sm">{progress}%</div>
+      </div>
+      
+      {/* Progress bar */}
+      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+        <div 
+          className="bg-blue-600 h-2.5 rounded-full" 
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
+      
+      {/* Deployment stages */}
+      <div className="space-y-2">
+        {stages.map((s, index) => (
+          <div 
+            key={s.id} 
+            className={`flex items-center ${
+              index < currentStageIndex ? 'text-green-600' : 
+              index === currentStageIndex ? 'text-blue-600 font-medium' : 
+              'text-gray-400'
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center mr-2 text-xs ${
+              index < currentStageIndex ? 'bg-green-100 text-green-600' : 
+              index === currentStageIndex ? 'bg-blue-100 text-blue-600' : 
+              'bg-gray-100 text-gray-400'
+            }`}>
+              {index < currentStageIndex ? '✓' : index + 1}
+            </div>
+            <div>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Error message */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const CreateContractPage = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('sample');
@@ -49,8 +195,9 @@ const CreateContractPage = () => {
   const [error, setError] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [deploymentProgress, setDeploymentProgress] = useState<number>(0);
-  const [deploymentStage, setDeploymentStage] = useState<string>('');
+  const [deploymentStage, setDeploymentStage] = useState<string>('prepare');
   const [isLargeContractDeployment, setIsLargeContractDeployment] = useState<boolean>(false);
+  const [deploymentSuccess, setDeploymentSuccess] = useState<boolean>(false);
   const [pendingDeployment, setPendingDeployment] = useState<{
     id: string;
     fileId: string;
@@ -67,10 +214,17 @@ const CreateContractPage = () => {
   const [compileResult, setCompileResult] = useState(null);
   const [editorView, setEditorView] = useState("codeEditor"); // 'codeEditor' or 'abi'
   const [autoValidate, setAutoValidate] = useState(true);
+  const [ideMode, setIdeMode] = useState<'simple' | 'advanced'>('simple');
+  const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
+  const [constructorArgs, setConstructorArgs] = useState<Record<string, any>>({});
   
   // Add theme detection right after useState declarations
   const { theme, resolvedTheme } = useTheme();
   
+  // Add ref for MultiFileIDE
+  const multiFileIDERef = React.useRef<MultiFileIDEHandle>(null);
+  const { toast } = useToast();
+
   useEffect(() => {
     // Set default sample contract
     const defaultContract = getDefaultSampleContract();
@@ -172,11 +326,11 @@ const CreateContractPage = () => {
       
       if (autoValidate) {
         try {
-          const results = await validateContractCode(selectedContract.code);
-          setValidationWarnings(results.warnings);
-          setValidationErrors(results.errors);
-          setSecurityScore(results.securityScore);
-          
+        const results = await validateContractCode(selectedContract.code);
+        setValidationWarnings(results.warnings);
+        setValidationErrors(results.errors);
+        setSecurityScore(results.securityScore);
+        
           // Update validation results state - the SolidityEditor component will handle the decorations
           setValidationResults(results);
         } catch (error) {
@@ -193,7 +347,7 @@ const CreateContractPage = () => {
     }
   };
 
-  // The handle validate function
+  // Modify handleValidate to use the ref when in advanced mode
   const handleValidate = async () => {
     // If already validating, don't start another validation
     if (isValidating) return;
@@ -202,16 +356,21 @@ const CreateContractPage = () => {
     setError('');
     
     try {
-      // Validate the current contract code
-      const results = await validateContractCode(contractCode);
-      
-      // Update validation results state
-      setValidationResults(results);
-      
-      // Update UI states
-      setValidationErrors(results.errors);
-      setValidationWarnings(results.warnings);
-      setSecurityScore(results.securityScore);
+      if (ideMode === 'advanced' && multiFileIDERef.current) {
+        // Use the advanced IDE validate function
+        await multiFileIDERef.current.validateCurrentFile();
+      } else {
+        // Use the simple editor validate function
+        const results = await validateContractCode(contractCode);
+        
+        // Update validation results state
+        setValidationResults(results);
+        
+        // Update UI states
+        setValidationErrors(results.errors);
+        setValidationWarnings(results.warnings);
+        setSecurityScore(results.securityScore);
+      }
     } catch (err) {
       console.error("Validation error:", err);
       setError(err.message || "Failed to validate contract");
@@ -220,67 +379,66 @@ const CreateContractPage = () => {
     }
   };
 
-  // Update the compileContract function to handle API validation responses
-  const handleCompileResponse = (result) => {
-    // If the compiler sent back validation results, update our UI
-    if (result.warnings && Array.isArray(result.warnings)) {
-      setWarnings(result.warnings);
-    }
-    
-    if (result.securityScore !== undefined) {
-      setSecurityScore(result.securityScore);
-    }
-    
-    // Update compilation result
-    setCompilationResult({
-      ...result,
-      // Extract additional metadata from result
-      compilerVersion: result.compilerVersion || 'Unknown',
-      gasEstimates: result.gasEstimates,
-      methodIdentifiers: result.methodIdentifiers,
-      deployedBytecodeSize: result.deployedBytecodeSize,
-    });
-  };
-
-  // Fix the handleCompile function to properly call the API
+  // Modify handleCompile to use the ref when in advanced mode
   const handleCompile = async () => {
+    if (isCompiling) return;
     setIsCompiling(true);
     setError('');
     
-    // Validate before compiling
     try {
-      const validationResults = await validateContractCode(contractCode);
-      
-      // Update validation state
-      setValidationWarnings(validationResults.warnings);
-      setValidationErrors(validationResults.errors);
-      setSecurityScore(validationResults.securityScore);
-      setValidationResults(validationResults);
-      
-      // Check for critical errors that should prevent compilation
-      if (validationResults.errors.some(error => 
-        error.includes('syntax error') || 
-        error.includes('undeclared identifier') ||
-        error.includes('not found')
-      )) {
-        setError('Cannot compile: Fix the syntax errors first');
+      if (ideMode === 'advanced' && multiFileIDERef.current) {
+        // Get the compilation result for the current file
+        const result = await multiFileIDERef.current.compileCurrentFile();
+        
+        if (result) {
+          setCompilationResult(result);
+          
+          // Update the contract name from the result
+          if (result.contractName) {
+            setContractName(result.contractName);
+          } else {
+            // Get from the selected contract
+            const selectedContract = multiFileIDERef.current.getSelectedContract();
+            if (selectedContract) {
+              setContractName(selectedContract.name);
+            }
+          }
+          
+          // Notify user
+          toast({
+            title: 'Compilation Successful',
+            description: `${result.contractName || 'Contract'} compiled successfully`,
+            type: 'success'
+          });
+        } else {
+          // If no result, but no error was set, it might be a user cancellation
         setIsCompiling(false);
-        return;
+      return;
+    }
+      } else {
+        // Simple editor compilation
+        const result = await compileContract(contractCode);
+        setCompilationResult(result);
+        
+        if (result.contractName) {
+          setContractName(result.contractName);
+        }
+        
+        toast({
+          title: 'Compilation Successful',
+          description: `${result.contractName || 'Contract'} compiled successfully`,
+          type: 'success'
+        });
       }
-
-      // Proceed with compilation
-      const response = await compileContract(contractCode);
-      
-      // Process the compilation result
-      handleCompileResponse(response);
-
     } catch (err) {
-      console.error('Compilation error:', err);
-      setError(err.message || 'An error occurred during compilation');
+      console.error("Compilation error:", err);
+      setError(err.message || "Failed to compile contract");
       
-      // Even with errors, check if we have partial validation data
-      if (err.warnings) setValidationWarnings(err.warnings);
-      if (err.securityScore) setSecurityScore(err.securityScore);
+      toast({
+        title: 'Compilation Failed',
+        description: err.message || 'Unknown error occurred during compilation',
+        type: 'error'
+      });
     } finally {
       setIsCompiling(false);
     }
@@ -334,98 +492,163 @@ const CreateContractPage = () => {
     );
   };
 
+  // Modify handleDeploy to use the multi-file IDE reference
   const handleDeploy = async () => {
+    if (isDeploying) return;
+    
+    // Reset all deployment-related states
+    setDeploymentSuccess(false);
+    setContractAddress('');
+    setDeploymentProgress(0);
+    setDeploymentStage('');
+    setError('');
+    
+    // If we don't have a compile result yet, compile first
     if (!compilationResult) {
-      setError('Please compile the contract first');
+      await handleCompile();
+      
+      // Check if compilation succeeded
+      if (!compilationResult) {
+        toast({
+          title: 'Compilation Required',
+          description: 'Please compile your contract before deploying',
+          type: 'error'
+        });
+      return;
+      }
+    }
+    
+    // Check if contract has constructor parameters
+    const constructorInputs = parseConstructorInputs(compilationResult.abi);
+    
+    if (constructorInputs.length > 0) {
+      // Open the dialog for constructor arguments
+      setIsDeployDialogOpen(true);
       return;
     }
     
-    // Block deployment for contracts with low security scores
-    if (securityScore < 60 && !window.confirm(
-      `WARNING: This contract has a low security score (${securityScore}%). Deploying it could lead to security issues or vulnerabilities. Are you sure you want to continue?`
-    )) {
-      setError('Deployment cancelled due to low security score');
-      return;
-    }
-    
-    // Check for critical security issues
-    const hasCriticalWarnings = warnings.some(w => 
-      w.includes('reentrancy') || 
-      w.includes('delegatecall') || 
-      w.includes('unbounded loop')
-    );
-    
-    if (hasCriticalWarnings && !window.confirm(
-      `WARNING: This contract has critical security vulnerabilities that could lead to loss of funds or control. It is strongly recommended NOT to deploy this contract. Are you absolutely sure you want to continue?`
-    )) {
-      setError('Deployment cancelled due to critical security vulnerabilities');
-      return;
-    }
+    // If no constructor arguments, proceed with deployment
+    await executeDeployment([]);
+  };
 
+  const executeDeployment = async (constructorArguments: any[]) => {
     setIsDeploying(true);
     setError('');
-    setDeploymentProgress(0);
-    setDeploymentStage('Preparing to deploy contract...');
-
+    setDeploymentProgress(10);
+    setDeploymentStage('prepare');
+    
     try {
-      // Initialize deployment progress tracker
-      let deploymentStartTime = Date.now();
+      let target = compilationResult;
+      console.log('Starting deployment process...');
       
-      // Simulate intermediate deployment steps for better UX
-      const progressUpdater = setInterval(() => {
-        const elapsedTime = Date.now() - deploymentStartTime;
-        let newProgress = 0;
-        let newStage = '';
-        
-        if (elapsedTime < 2000) {
-          newProgress = 10;
-          newStage = 'Initializing deployment...';
-        } else if (elapsedTime < 5000) {
-          newProgress = 25;
-          newStage = 'Preparing contract bytecode...';
-        } else if (elapsedTime < 8000) {
-          newProgress = 40;
-          newStage = 'Sending transaction to testnet...';
-        } else if (elapsedTime < 11000) {
-          newProgress = 60;
-          newStage = 'Waiting for transaction confirmation...';
-        } else if (elapsedTime < 14000) {
-          newProgress = 75;
-          newStage = 'Transaction confirmed, finalizing...';
-        } else {
-          newProgress = 90;
-          newStage = 'Almost done, retrieving contract address...';
-        }
-        
-        setDeploymentProgress(newProgress);
-        setDeploymentStage(newStage);
-      }, 2000);
+      // Set the type of deployment based on bytecode size
+      const isLarge = target.bytecode && target.bytecode.length > 10000;
+      setIsLargeContractDeployment(isLarge);
       
-      // Actual deployment
-      const response = await deployContract(compilationResult.bytecode, compilationResult.abi);
+      // Real deployment process
+        setDeploymentProgress(30);
+      setDeploymentStage('link');
+      console.log('Deployment stage: link');
       
-      // Clear the progress updater
-      clearInterval(progressUpdater);
+      // Move to compilation check stage
+      setDeploymentProgress(50);
+      setDeploymentStage('compile');
+      console.log('Deployment stage: compile');
       
-      // Set final progress
-      setDeploymentProgress(100);
-      setDeploymentStage('Contract successfully deployed!');
+      // Start actual deployment
+      setDeploymentProgress(70);
+      setDeploymentStage('deploy');
+      console.log('Deployment stage: deploy');
       
-      // Update state with contract address
-      setContractAddress(response.contractAddress);
+      // Call actual deployment endpoint
+      const result = await deployContract(target.bytecode, target.abi, constructorArguments);
+      console.log('Deployment result:', result);
       
+      // Deployment confirmed
+      setDeploymentProgress(90);
+      setDeploymentStage('confirm');
+      console.log('Deployment stage: confirm');
+      
+      // Deployment complete
+          setDeploymentProgress(100);
+      setDeploymentStage('complete');
+      
+      // Set the contract address and deployment success
+      if (result.contractAddress) {
+        setContractAddress(result.contractAddress);
+        setDeploymentSuccess(true);
+        console.log('Deployment complete. Contract address:', result.contractAddress);
+
+        // Show success notification
+        toast({
+          title: 'Deployment Successful',
+          description: `Contract deployed at ${result.contractAddress}`,
+          type: 'success'
+        });
+            } else {
+        throw new Error('No contract address received from deployment');
+      }
+
+      // If in advanced mode, notify the IDE component
+      if (ideMode === 'advanced' && multiFileIDERef.current) {
+        multiFileIDERef.current.handleDeploymentSuccess(result.contractAddress);
+      }
     } catch (err) {
-      console.error('Deployment error:', err);
-      setError(err.message || 'An error occurred during deployment');
+      console.error("Deployment error:", err);
+      setError(err.message || "Failed to deploy contract");
+      setDeploymentProgress(0);
+      setDeploymentStage('');
+      setDeploymentSuccess(false);
+      setContractAddress('');
+      
+      toast({
+        title: 'Deployment Failed',
+        description: err.message || 'Unknown error occurred during deployment',
+        type: 'error'
+      });
     } finally {
-      // Ensure isDeploying is set to false after completion or error
       setIsDeploying(false);
     }
+  };
+  
+  const handleDeployWithArgs = () => {
+    // Format constructor arguments according to their types
+    const constructorInputs = parseConstructorInputs(compilationResult.abi);
+    const formattedArgs = constructorInputs.map(input => {
+      const value = constructorArgs[input.name];
+      
+      // Attempt to format the value based on type
+      try {
+        if (input.type.includes('int')) {
+          // Handle integer types
+          return value ? BigInt(value).toString() : '0';
+        } else if (input.type === 'bool') {
+          // Handle boolean
+          return value === 'true' || value === true;
+        } else if (input.type.includes('[]')) {
+          // Handle arrays
+          return value ? JSON.parse(value) : [];
+    } else {
+          // Handle string, address, bytes
+          return value || '';
+        }
+      } catch (error) {
+        console.error(`Error formatting constructor arg ${input.name}:`, error);
+        return value || '';
+      }
+    });
+    
+    // Close the dialog before starting deployment
+    setIsDeployDialogOpen(false);
+    
+    // Execute deployment with formatted args
+    executeDeployment(formattedArgs);
   };
 
   const handleInteract = () => {
     if (contractAddress) {
-      router.push(`/interact?address=${contractAddress}`);
+      // Navigate to the interact page with the contract address
+      router.push(`/interact/${contractAddress}`);
     }
   };
 
@@ -436,50 +659,73 @@ const CreateContractPage = () => {
   };
 
   const validateContractCode = async (code: string): Promise<{ errors: string[], warnings: string[], securityScore: number }> => {
-    // This function would normally call an API for validation
-    // For this example, we'll simulate a validation response
+    // Real validation implementation
+    const errors = [];
+    const warnings = [];
+    let securityScore = 100;
     
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Check basic syntax
-        const errors = [];
-        const warnings = [];
-        let securityScore = 100;
-        
-        // Example validations
-        if (!code.includes('pragma solidity')) {
-          errors.push('Missing solidity pragma statement');
+    // Basic validation checks
+    if (!code.includes('pragma solidity')) {
+      errors.push('Missing solidity pragma statement');
+      securityScore -= 10;
+    }
+    
+    // Check for deprecated or vulnerable patterns
+    if (code.includes('selfdestruct')) {
+      warnings.push('Use of selfdestruct is deprecated and can lead to loss of funds');
+        securityScore -= 15;
+    }
+    
+    if (code.includes('tx.origin')) {
+      warnings.push('Using tx.origin for authentication is vulnerable to phishing attacks');
+      securityScore -= 20;
+    }
+    
+    if (code.includes('block.timestamp')) {
+      warnings.push('Reliance on block.timestamp can be manipulated by miners within certain limits');
+      securityScore -= 5;
+    }
+    
+    // Check for reentrancy vulnerabilities
+    if (code.includes('.call{value:')) {
+      warnings.push('Potential reentrancy vulnerability detected at low-level call with value');
+      securityScore -= 25;
+    }
+    
+    // Check for unbounded loops
+    if (code.match(/for\s*\([^;]*;\s*[^;]*;\s*[^)]*\)/)) {
+      const forLoops = code.match(/for\s*\([^;]*;\s*[^;]*;\s*[^)]*\)/g) || [];
+      for (const loop of forLoops) {
+        if (!loop.includes('length') && !loop.includes('< 10') && !loop.includes('< 20') && !loop.includes('< 50')) {
+          warnings.push('Potentially unbounded loop detected which could lead to gas limit issues');
           securityScore -= 10;
+          break;
         }
-        
-        if (code.includes('selfdestruct')) {
-          warnings.push('Use of selfdestruct is deprecated and can lead to loss of funds');
-          securityScore -= 15;
-        }
-        
-        if (code.includes('tx.origin')) {
-          warnings.push('Using tx.origin for authentication is vulnerable to phishing attacks');
-          securityScore -= 20;
-        }
-        
-        if (code.includes('block.timestamp')) {
-          warnings.push('Reliance on block.timestamp can be manipulated by miners within certain limits');
-          securityScore -= 5;
-        }
-        
-        // More complex warnings for demo purposes
-        if (code.includes('.call{value:')) {
-          warnings.push('Potential reentrancy vulnerability detected at low-level call with value');
-          securityScore -= 25;
-        }
-        
-        resolve({
-          errors,
-          warnings,
-          securityScore: Math.max(0, securityScore)
-        });
-      }, 800); // Simulate network delay
-    });
+      }
+    }
+    
+    // Check for proper error handling
+    if (code.includes('require(') && !code.includes('revert') && !code.includes('custom error')) {
+      warnings.push('Consider using custom errors instead of require statements for gas efficiency');
+      securityScore -= 5;
+    }
+    
+    // Check for missing visibility specifiers
+    const functionMatches = code.match(/function\s+[a-zA-Z0-9_]+\s*\(/g) || [];
+    for (const funcDef of functionMatches) {
+      if (!funcDef.includes(' public ') && !funcDef.includes(' private ') && 
+          !funcDef.includes(' internal ') && !funcDef.includes(' external ')) {
+        warnings.push('Function missing explicit visibility specifier');
+        securityScore -= 5;
+        break;
+      }
+    }
+    
+      return {
+      errors,
+      warnings,
+      securityScore: Math.max(0, securityScore)
+    };
   };
 
   // Function to get warning info
@@ -527,10 +773,71 @@ const CreateContractPage = () => {
     return error;
   };
 
+  // Add handlers for the MultiFileIDE component
+  const handleMultiFileCompile = useCallback((result: any, fileId: string) => {
+    setCompilationResult(result);
+    
+    // Extract warnings and security score
+    if (result.warnings && Array.isArray(result.warnings)) {
+      setWarnings(result.warnings);
+    }
+    
+    if (result.securityScore !== undefined) {
+      setSecurityScore(result.securityScore);
+    }
+    
+    // Set contract name if available
+    if (multiFileIDERef.current) {
+      const selectedContract = multiFileIDERef.current.getSelectedContract();
+      if (selectedContract) {
+        setContractName(selectedContract.name);
+      }
+    }
+  }, []);
+
+  const handleMultiFileValidate = useCallback((result: any, fileId: string) => {
+    setValidationResults(result);
+    setValidationWarnings(result.warnings || []);
+    setValidationErrors(result.errors || []);
+    setSecurityScore(result.securityScore || 100);
+  }, []);
+
+  const handleMultiFileEditorChange = useCallback((content: string, fileId: string) => {
+    // Update the contractCode state to keep the action buttons working
+    setContractCode(content);
+    
+    // If we're in custom tab, also update the customContractCode
+    if (activeTab === 'custom') {
+      setCustomContractCode(content);
+    }
+  }, [activeTab]);
+
+  // Update the compileContract function to handle API validation responses
+  const handleCompileResponse = (result) => {
+    // If the compiler sent back validation results, update our UI
+    if (result.warnings && Array.isArray(result.warnings)) {
+      setWarnings(result.warnings);
+    }
+    
+    if (result.securityScore !== undefined) {
+      setSecurityScore(result.securityScore);
+    }
+    
+    // Update compilation result
+    setCompilationResult({
+      ...result,
+      // Extract additional metadata from result
+      compilerVersion: result.compilerVersion || 'Unknown',
+      gasEstimates: result.gasEstimates,
+      methodIdentifiers: result.methodIdentifiers,
+      deployedBytecodeSize: result.deployedBytecodeSize,
+    });
+  };
+
   return (
     <div className="min-h-screen pb-20">
       {/* Hero Section */}
-      <section className="relative py-12 md:py-20 mb-8">
+      <section className="relative py-12 md:py-16 mb-4">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden -z-10">
           <motion.div
@@ -574,13 +881,39 @@ const CreateContractPage = () => {
               Create Smart Contracts
             </motion.h1>
             <motion.p 
-              className="text-lg text-foreground/80 mb-8"
+              className="text-lg text-foreground/80 mb-4"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Build, compile and deploy Solidity smart contracts to Ethereum testnet in minutes — with real-time validation and security analysis.
+              Build, compile and deploy Solidity smart contracts to Ethereum testnet in minutes — with real-time validation, security analysis, and multi-file project support.
             </motion.p>
+            
+          <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex justify-center"
+          >
+              <Button
+                variant={ideMode === 'advanced' ? "secondary" : "default"}
+                size="lg"
+                className="gap-2"
+                onClick={() => setIdeMode(ideMode === 'simple' ? 'advanced' : 'simple')}
+              >
+                {ideMode === 'simple' ? (
+                  <>
+                    <Code2Icon className="h-5 w-5" />
+                    Switch to Advanced IDE
+                  </>
+                ) : (
+                  <>
+                    <FileCode className="h-5 w-5" />
+                    Switch to Simple Editor
+                  </>
+                )}
+              </Button>
+          </motion.div>
           </div>
         </div>
       </section>
@@ -589,90 +922,112 @@ const CreateContractPage = () => {
       <section className="container mx-auto px-4">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Side - Editor */}
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:flex-1"
+            className="lg:flex-1 w-full"
           >
-            {/* Contract Selection */}
-            <div className="bg-background/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-border/50 shadow-lg">
-              <h2 className="text-xl font-bold mb-6 text-primary">Smart Contract</h2>
-              <Tabs defaultValue="sample" value={activeTab} onValueChange={handleTabChange}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="sample">Sample Contracts</TabsTrigger>
-                  <TabsTrigger value="custom">Custom Contract</TabsTrigger>
-                </TabsList>
-                <TabsContent value="sample" className="space-y-6">
-                  <div>
-                    <Label htmlFor="template" className="text-foreground/80 mb-2 block">
-                      Select Sample Contract
-                    </Label>
-                    <Select value={selectedSample} onValueChange={handleSampleChange}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a sample contract" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sampleContracts.map(contract => (
-                          <SelectItem key={contract.name} value={contract.name}>
-                            {contract.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </TabsContent>
-                <TabsContent value="custom">
-                  <div className="space-y-4">
+            {ideMode === 'simple' ? (
+              /* Original Simple Editor */
+              <div className="bg-background/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-border/50 shadow-lg">
+                <h2 className="text-xl font-bold mb-6 text-primary">Smart Contract</h2>
+                <Tabs defaultValue="sample" value={activeTab} onValueChange={handleTabChange}>
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="sample">Sample Contracts</TabsTrigger>
+                    <TabsTrigger value="custom">Custom Contract</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="sample" className="space-y-6">
                     <div>
-                      <Label htmlFor="customContract" className="text-foreground/80 mb-2 block">
-                        Write or paste your own Solidity contract
+                      <Label htmlFor="template" className="text-foreground/80 mb-2 block">
+                        Select Sample Contract
                       </Label>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="autoValidate" className="text-sm text-muted-foreground">
-                          Auto-validate code
+                      <Select value={selectedSample} onValueChange={handleSampleChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a sample contract" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sampleContracts.map(contract => (
+                            <SelectItem key={contract.name} value={contract.name}>
+                              {contract.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="custom">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="customContract" className="text-foreground/80 mb-2 block">
+                          Write or paste your own Solidity contract
                         </Label>
-                        <Switch checked={autoValidate} onChange={setAutoValidate} />
+                        <div className="flex items-center justify-between mb-2">
+                          <Label htmlFor="autoValidate" className="text-sm text-muted-foreground">
+                            Auto-validate code
+                          </Label>
+                          <Switch checked={autoValidate} onChange={setAutoValidate} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  </TabsContent>
+                </Tabs>
 
-              {/* Code Editor */}
-              <div className="relative">
-                <div className="absolute top-0 left-0 right-0 h-10 bg-background/80 backdrop-blur-sm border-b border-border/30 flex items-center px-4 z-10">
-                  <div className="flex space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                {/* Code Editor */}
+                <div className="relative mt-6">
+                  <div className="absolute top-0 left-0 right-0 h-10 bg-background/80 backdrop-blur-sm border-b border-border/30 flex items-center px-4 z-10">
+                    <div className="flex space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <div className="w-3 h-3 rounded-full bg-green-500" />
+                    </div>
+                    <div className="ml-4 text-foreground/60 text-sm">
+                      {activeTab === 'sample' ? (selectedSample || 'Sample') + '.sol' : 'MyContract.sol'}
+                    </div>
                   </div>
-                  <div className="ml-4 text-foreground/60 text-sm">
-                    {activeTab === 'sample' ? (selectedSample || 'Sample') + '.sol' : 'MyContract.sol'}
-                  </div>
-                </div>
-                <div className="h-[700px] pt-10">
-                  <div className="w-full" style={{ 
-                    height: "700px", 
-                    border: "1px solid rgba(255, 255, 255, 0.1)", 
-                    borderRadius: "8px", 
-                    overflow: "auto"
-                  }}>
-                    <SolidityEditor
-                      value={contractCode}
-                      onChange={(value) => {
-                        setContractCode(value);
-                        if (activeTab === 'custom') {
-                          setCustomContractCode(value);
-                        }
-                      }}
-                      validationResults={validationResults}
-                      lintSolidityCode={lintSolidityCode}
-                    />
+                  <div className="h-[700px] pt-10">
+                    <div className="w-full h-full" style={{ 
+                      border: "1px solid rgba(255, 255, 255, 0.1)", 
+                      borderRadius: "8px", 
+                      overflow: "auto"
+                    }}>
+                      <SolidityEditor
+                        value={contractCode}
+                        onChange={(value) => {
+                          setContractCode(value);
+                          if (activeTab === 'custom') {
+                            setCustomContractCode(value);
+                          }
+                        }}
+                        validationResults={validationResults}
+                        lintSolidityCode={lintSolidityCode}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Advanced Multi-File IDE - Fixed height to match simple mode */
+              <div className="bg-background/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-border/50 shadow-lg">
+                <h2 className="text-xl font-bold mb-6 text-primary">Multi-File IDE</h2>
+                <div className="h-[700px] w-full">
+                  <ToastProvider>
+                    <FileSystemProvider>
+                      <MultiFileIDE
+                        ref={multiFileIDERef}
+                        onCompile={handleMultiFileCompile}
+                        onValidate={handleMultiFileValidate}
+                        onEditorChange={handleMultiFileEditorChange}
+                        onDeploy={handleDeploy}
+                      />
+                    </FileSystemProvider>
+                  </ToastProvider>
+                </div>
+              </div>
+            )}
+
+            {/* IDE Details Panel - Now positioned below the editor */}
+            <IDEDetailsPanel mode={ideMode} />
           </motion.div>
 
           {/* Right Side - Status & Info */}
@@ -683,48 +1038,80 @@ const CreateContractPage = () => {
             className="lg:w-96"
           >
             {/* Action Buttons Panel */}
-            <ActionButtons
-              handleValidate={handleValidate}
-              handleCompile={handleCompile}
-              handleDeploy={handleDeploy}
-              handleInteract={handleInteract}
-              isValidating={isValidating}
-              isCompiling={isCompiling}
-              isDeploying={isDeploying}
-              contractCode={contractCode}
-              customContractCode={customContractCode}
-              activeTab={activeTab}
-              compilationResult={compilationResult}
-              contractAddress={contractAddress}
-              deploymentProgress={deploymentProgress}
-              deploymentStage={deploymentStage}
-              copied={copied}
-              setCopied={setCopied}
-            />
-            
-            {/* Status Panel */}
-            <StatusPanel
-              isValidating={isValidating}
-              isCompiling={isCompiling}
-              isDeploying={isDeploying}
-              validationResults={validationResults}
-              validationErrors={validationErrors}
-              validationWarnings={validationWarnings}
-              securityScore={securityScore}
-              compilationResult={compilationResult}
-              contractAddress={contractAddress}
-              error={error}
-              explainCompilerError={explainCompilerError}
-              getContractDetails={getContractDetails}
-              getWarningInfo={getWarningInfo}
-              warnings={warnings}
-            />
-            
-            {/* Tips Panel */}
-            <TipsPanel />
+            <div className="col-span-12 md:col-span-4 h-full max-h-full">
+              {ideMode === 'simple' && (
+                <ActionButtons
+                  handleValidate={handleValidate}
+                  handleCompile={handleCompile}
+                  handleDeploy={handleDeploy}
+                  handleInteract={handleInteract}
+                  isValidating={isValidating}
+                  isCompiling={isCompiling}
+                  isDeploying={isDeploying}
+                  contractCode={contractCode}
+                  customContractCode={customContractCode}
+                  activeTab={activeTab}
+                  compilationResult={compilationResult}
+                  contractAddress={contractAddress}
+                  deploymentProgress={deploymentProgress}
+                  deploymentStage={deploymentStage}
+                  copied={copied}
+                  setCopied={setCopied}
+                />
+              )}
+              
+              <StatusPanel
+                isValidating={isValidating}
+                isCompiling={isCompiling}
+                isDeploying={isDeploying}
+                validationResults={validationResults}
+                validationErrors={validationErrors}
+                validationWarnings={validationWarnings}
+                securityScore={securityScore}
+                compilationResult={compilationResult}
+                contractAddress={contractAddress}
+                error={error}
+                explainCompilerError={explainCompilerError}
+                getContractDetails={getContractDetails}
+                getWarningInfo={getWarningInfo}
+                warnings={warnings}
+                deploymentProgress={deploymentProgress}
+                deploymentStage={deploymentStage}
+                deploymentSuccess={deploymentSuccess}
+              />
+
+              {/* Tips Panel - Now shown for both modes */}
+              <TipsPanel />
+            </div>
           </motion.div>
         </div>
       </section>
+
+      {/* Constructor Arguments Dialog */}
+      <Dialog open={isDeployDialogOpen} onOpenChange={setIsDeployDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Constructor Arguments</DialogTitle>
+            <DialogDescription>
+              This contract requires the following constructor arguments:
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ConstructorForm 
+            inputs={compilationResult ? parseConstructorInputs(compilationResult.abi) : []}
+            onChange={setConstructorArgs}
+          />
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeployDialogOpen(false)}>
+              Cancel
+                      </Button>
+            <Button onClick={handleDeployWithArgs} disabled={isDeploying}>
+              {isDeploying ? 'Deploying...' : 'Deploy Contract'}
+                      </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

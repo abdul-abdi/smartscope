@@ -4,15 +4,19 @@ import { CompilationResult, DeploymentResult, ContractCallResult, ContractAnalys
  * Compile a Solidity smart contract
  * 
  * @param code The Solidity code to compile
+ * @param extraData Optional additional data like external libraries
  * @returns The compilation result including ABI and bytecode
  */
-export async function compileContract(code: string): Promise<CompilationResult> {
+export async function compileContract(
+  code: string, 
+  extraData?: { externalLibraries?: string[] }
+): Promise<CompilationResult> {
   const response = await fetch('/api/compile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, ...extraData }),
   });
   
   if (!response.ok) {
@@ -24,19 +28,53 @@ export async function compileContract(code: string): Promise<CompilationResult> 
 }
 
 /**
+ * Compile multiple Solidity smart contract files with imports
+ * 
+ * @param files A map of file paths to their content
+ * @param mainFile The main file to compile (entry point)
+ * @param extraData Optional additional data like external libraries
+ * @returns The compilation result including ABI and bytecode
+ */
+export async function compileMultipleFiles(
+  files: Record<string, string>,
+  mainFile: string,
+  extraData?: { externalLibraries?: string[] }
+): Promise<CompilationResult> {
+  const response = await fetch('/api/compile-multi', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ files, mainFile, ...extraData }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to compile contracts');
+  }
+  
+  return response.json();
+}
+
+/**
  * Deploy a compiled smart contract to Hedera Testnet
  * 
  * @param bytecode The compiled bytecode
  * @param abi The contract ABI
+ * @param constructorArgs Optional constructor arguments
  * @returns The deployment result including contract address
  */
-export async function deployContract(bytecode: string, abi: any[]): Promise<DeploymentResult> {
+export async function deployContract(
+  bytecode: string, 
+  abi: any[],
+  constructorArgs: any[] = []
+): Promise<DeploymentResult> {
   const response = await fetch('/api/deploy', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ bytecode, abi }),
+    body: JSON.stringify({ bytecode, abi, constructorArgs }),
   });
   
   if (!response.ok) {
@@ -44,7 +82,23 @@ export async function deployContract(bytecode: string, abi: any[]): Promise<Depl
     throw new Error(error.error || 'Failed to deploy contract');
   }
   
-  return response.json();
+  const result = await response.json();
+  
+  // Ensure we have a contract address
+  if (!result.contractAddress && result.contractId) {
+    // Convert contract ID to address if needed
+    result.contractAddress = result.contractId;
+  }
+  
+  if (!result.contractAddress) {
+    throw new Error('No contract address received from deployment');
+  }
+  
+  return {
+    contractId: result.contractId,
+    contractAddress: result.contractAddress,
+    abi: abi
+  };
 }
 
 /**

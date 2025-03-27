@@ -1324,7 +1324,7 @@ const InteractPage = () => {
       <AbiModal 
         isOpen={isAbiModalOpen}
         onClose={() => setIsAbiModalOpen(false)}
-        abi={abi}
+        abi={functions.length > 0 ? functions : abi}
         contractAddress={contractAddress}
       />
     </motion.div>

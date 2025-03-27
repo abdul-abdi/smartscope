@@ -20,7 +20,7 @@ import {
 dotenv.config();
 
 // Default gas limit for large contract deployment
-const DEFAULT_LARGE_GAS_LIMIT = 800000;
+const DEFAULT_LARGE_GAS_LIMIT = 15000000; // Increased to match main deploy route
 
 // Simple in-memory status store - for production use Redis or a database
 const deploymentStatuses = new Map<string, {
@@ -90,9 +90,10 @@ export async function POST(req: NextRequest) {
       timestamp: Date.now()
     });
     
-    // Prep bytecode - optimize and separate metadata
+    // Prep bytecode but use the original bytecode for deployment
     const preparedContract = prepareContractForDeployment(bytecode, abi);
-    const optimizedBytecode = preparedContract.bytecode;
+    // Use the original bytecode instead of the optimized one
+    const bytecodeForDeployment = bytecode; // Use original instead of preparedContract.bytecode
     
     // Get Hedera credentials
     const { operatorId, operatorKey } = customOperatorId && customOperatorKey 
@@ -102,26 +103,40 @@ export async function POST(req: NextRequest) {
     // Initialize client - with retry for connection issues
     const client = await withRetry(() => initializeClient(operatorId, operatorKey));
     
-    // Create the private key object for signing
-    const privateKey = PrivateKey.fromStringED25519(operatorKey);
+    // Create the private key object for signing with better format detection
+    let privateKey;
+    try {
+      // First try to parse as ED25519 key which is recommended for Hedera
+      if (operatorKey.startsWith('302e020100300506032b657004')) {
+        privateKey = PrivateKey.fromStringDer(operatorKey);
+        console.log("Using DER format private key");
+      } else {
+        privateKey = PrivateKey.fromStringED25519(operatorKey);
+        console.log("Using ED25519 format private key");
+      }
+    } catch (error) {
+      console.warn("Falling back to generic key parsing method");
+      privateKey = PrivateKey.fromString(operatorKey);
+    }
     
     // Clean bytecode format
-    const bytecodeHex = optimizedBytecode.startsWith('0x') 
-      ? optimizedBytecode.slice(2) 
-      : optimizedBytecode;
+    const bytecodeHex = bytecodeForDeployment.startsWith('0x') 
+      ? bytecodeForDeployment.slice(2) 
+      : bytecodeForDeployment;
     
     // Convert to buffer once
     const bytecodeBuffer = Buffer.from(bytecodeHex, 'hex');
     
-    // Log deployment attempt
+    // Log deployment attempt with more details
     console.log(`[${deploymentId}] Direct large contract deployment started`);
-    console.log(`Bytecode size: ${bytecodeBuffer.length} bytes`);
+    console.log(`Bytecode size: ${bytecodeBuffer.length} bytes (${Math.ceil(bytecodeBuffer.length/1024)} KB)`);
+    console.log(`Using gas limit: ${gas}`);
     
-    // Create transaction with higher gas limit for large contracts
+    // Create transaction with higher gas limit and max transaction fee
     const contractCreateTx = new ContractCreateTransaction()
       .setGas(gas)
       .setBytecode(bytecodeBuffer)
-      .setMaxTransactionFee(new Hbar(25)) // Higher fee for larger contracts
+      .setMaxTransactionFee(new Hbar(100)) // Increased to match main deploy route
       .freezeWith(client);
     
     console.log(`[${deploymentId}] Signing transaction`);
