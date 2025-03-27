@@ -4,7 +4,9 @@ import {
   ContractCreateTransaction,
   Hbar,
   ContractFunctionParameters,
-  Long
+  Long,
+  AccountBalanceQuery,
+  Status
 } from '@hashgraph/sdk';
 import dotenv from 'dotenv';
 import { 
@@ -61,6 +63,66 @@ function cleanupDeploymentStatuses() {
 // Start the cleanup process
 setTimeout(cleanupDeploymentStatuses, CLEANUP_INTERVAL);
 
+// Helper function to handle transaction with retries
+async function executeWithRetry(operation, maxRetries = 3, initialDelay = 1000) {
+  let attempt = 0;
+  let lastError;
+
+  while (attempt < maxRetries) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      // Check if this is a retriable error
+      const isRetriable = 
+        error.status === Status.Unknown || 
+        error.status === Status.Busy || 
+        error.status === Status.ReceiptNotFound ||
+        error.message?.includes('network error') ||
+        error.message?.includes('timeout');
+      
+      if (!isRetriable) {
+        throw error; // Don't retry non-retriable errors
+      }
+      
+      attempt++;
+      console.warn(`Attempt ${attempt}/${maxRetries} failed: ${error.message || 'Unknown error'}`);
+      
+      if (attempt >= maxRetries) break;
+      
+      // Exponential backoff
+      const delay = initialDelay * Math.pow(2, attempt - 1);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError || new Error('Operation failed after maximum retries');
+}
+
+// Helper function to check account balance
+async function checkAccountBalance(client, operatorId) {
+  try {
+    const query = new AccountBalanceQuery()
+      .setAccountId(operatorId);
+    
+    const accountBalance = await query.execute(client);
+    console.log(`Operator account balance: ${accountBalance.hbars.toString()}`);
+    
+    // Warn if balance is low
+    const lowBalanceThreshold = Long.fromString("5000000000"); // 50 HBAR
+    if (accountBalance.hbars.toTinybars().lessThan(lowBalanceThreshold)) {
+      console.warn(`WARNING: Low account balance (${accountBalance.hbars.toString()}). Contract deployment may fail.`);
+    }
+    
+    return accountBalance.hbars;
+  } catch (error) {
+    console.error('Failed to check account balance:', error);
+    // Don't fail the deployment process if balance check fails
+    return null;
+  }
+}
+
 /**
  * Direct deployment endpoint for large contracts
  * This approach avoids the file service chunking approach and instead
@@ -106,6 +168,9 @@ export async function POST(req: NextRequest) {
     // Initialize client - with retry for connection issues
     const client = await withRetry(() => initializeClient(operatorId, operatorKey));
     
+    // Check account balance before proceeding
+    await checkAccountBalance(client, operatorId);
+    
     // Create the private key object for signing with better format detection
     let privateKey;
     try {
@@ -139,7 +204,7 @@ export async function POST(req: NextRequest) {
     let contractCreateTx = new ContractCreateTransaction()
       .setGas(gas)
       .setBytecode(bytecodeBuffer)
-      .setMaxTransactionFee(new Hbar(100)); // Increased to match main deploy route
+      .setMaxTransactionFee(new Hbar(20)); // Reduced from 100 HBAR to improve reliability
     
     // Add constructor parameters if any
     if (constructorArgs.length > 0) {
@@ -230,11 +295,20 @@ export async function POST(req: NextRequest) {
     console.log(`[${deploymentId}] Signing transaction`);
     const contractCreateSign = await contractCreateTx.freezeWith(client).sign(privateKey);
     
-    console.log(`[${deploymentId}] Executing transaction`);
-    const contractCreateSubmit = await contractCreateSign.execute(client);
+    console.log(`[${deploymentId}] Executing transaction with retry logic`);
     
-    console.log(`[${deploymentId}] Waiting for receipt`);
-    const contractReceipt = await contractCreateSubmit.getReceipt(client);
+    // Execute transaction with retry logic
+    const contractCreateSubmit = await executeWithRetry(async () => {
+      return await contractCreateSign.execute(client);
+    });
+    
+    console.log(`[${deploymentId}] Transaction executed, getting receipt with retry logic`);
+    
+    // Get receipt with retry logic
+    const contractReceipt = await executeWithRetry(async () => {
+      return await contractCreateSubmit.getReceipt(client);
+    });
+    
     const contractId = contractReceipt.contractId;
     
     if (!contractId) {
@@ -265,12 +339,22 @@ export async function POST(req: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('Error in direct deployment:', error);
+    // Enhanced error logging
+    console.error('Error in direct deployment:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code || 'none',
+      statusCode: error.statusCode || 'none',
+      status: error.status || 'none',
+      transactionId: error.transactionId || 'none',
+      type: typeof error
+    });
     
     const errorMessage = error.message || 'Unknown error';
     const deploymentId = error.deploymentId || `error-${Date.now()}`;
     
-    // Update status to error
+    // Update status to error with detailed information
     if (deploymentId) {
       deploymentStatuses.set(deploymentId, {
         status: 'error',
@@ -279,11 +363,25 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    // Return error response
+    // Provide more helpful error message based on the error type
+    let clientFriendlyMessage = errorMessage;
+    
+    if (errorMessage.includes('2 UNKNOWN')) {
+      clientFriendlyMessage = 'Transaction submitted but status is unknown. This often resolves itself, please check for your contract in a few minutes.';
+    } else if (errorMessage.includes('INSUFFICIENT_TX_FEE')) {
+      clientFriendlyMessage = 'The transaction fee is too low. Try again with a higher gas limit.';
+    } else if (errorMessage.includes('INSUFFICIENT_PAYER_BALANCE')) {
+      clientFriendlyMessage = 'Your account does not have enough HBAR. Please obtain more HBAR from a faucet.';
+    } else if (errorMessage.includes('CONTRACT_REVERT_EXECUTED')) {
+      clientFriendlyMessage = 'Smart contract reverted during construction. Check your constructor logic and parameters.';
+    }
+    
+    // Return error response with improved client-friendly message
     return NextResponse.json({
       success: false,
-      error: errorMessage,
-      deploymentId
+      error: clientFriendlyMessage,
+      deploymentId,
+      originalError: errorMessage
     }, { status: 500 });
   }
 }
