@@ -56,4 +56,37 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom scrollbar styles for code blocks */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Scrollable code block */
+.code-block {
+  position: relative;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Styles for code copy button feedback */
+.copy-success {
+  color: hsl(var(--success));
 } 
