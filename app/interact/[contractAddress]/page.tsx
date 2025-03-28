@@ -929,23 +929,22 @@ const InteractPage = () => {
   };
 
   return (
-    <motion.div
-      className="container mx-auto px-4 max-w-6xl py-8"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Contract Identity */}
-      <motion.div variants={itemVariants} className="mb-6">
-        <ContractHeader 
-          contractAddress={contractAddress} 
-          abiSource={abiSource}
-          functionsCount={functions.length}
-          onViewAbi={() => setIsAbiModalOpen(true)}
-        />
-      </motion.div>
+    <div className="container mx-auto my-4 space-y-6 pb-20">
+      <ContractHeader 
+        contractAddress={contractAddress} 
+        abiSource={abiSource}
+        functionsCount={functions.length}
+        onViewAbi={() => setIsAbiModalOpen(true)}
+      />
 
-      {/* Error Messages */}
+      <Alert variant="default" className="border-amber-400 bg-amber-50 dark:bg-amber-900/20">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Development Notice</AlertTitle>
+        <AlertDescription>
+          This feature is still under active development. Some contract interactions may not work as expected.
+        </AlertDescription>
+      </Alert>
+
       {abiError && (
         <motion.div variants={itemVariants} className="mb-6">
           <Alert variant="destructive">
@@ -956,7 +955,6 @@ const InteractPage = () => {
         </motion.div>
       )}
       
-      {/* Add the ContractStorage component right after the ContractHeader and error messages */}
       {!isLoadingAbi && functions.length > 0 && (
         <motion.div variants={itemVariants} className="mb-6">
           <ContractStorage 
@@ -966,7 +964,6 @@ const InteractPage = () => {
         </motion.div>
       )}
       
-      {/* Bytecode Input */}
       {showBytecodeInput && (
         <motion.div variants={itemVariants} className="mb-8">
           <BytecodeInput
@@ -978,7 +975,6 @@ const InteractPage = () => {
         </motion.div>
       )}
 
-      {/* Main Content */}
       {isLoadingAbi ? (
         <div className="grid gap-6 md:grid-cols-3">
           <Skeleton className="h-[50vh] md:col-span-1" />
@@ -988,7 +984,6 @@ const InteractPage = () => {
         <>
           {functions.length > 0 ? (
             <div className="grid gap-6 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
-              {/* Functions List Sidebar */}
               <motion.div variants={itemVariants} className="md:col-span-1">
                 <Card className="lg:sticky lg:top-4">
                   <CardHeader className="pb-2">
@@ -1031,7 +1026,6 @@ const InteractPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {/* Search input */}
                     <div className="px-4 py-3 border-b border-border/60">
                       <div className="relative">
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1044,7 +1038,6 @@ const InteractPage = () => {
                       </div>
                     </div>
                     
-                    {/* Function tabs */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                       <TabsList className="w-full grid grid-cols-2 rounded-none border-b">
                         <TabsTrigger 
@@ -1078,9 +1071,9 @@ const InteractPage = () => {
                           ) : (
                             <div className="p-4 text-sm text-muted-foreground">
                               No read functions found{searchQuery ? ` matching "${searchQuery}"` : ''}.
-        </div>
-      )}
-        </div>
+                            </div>
+                          )}
+                        </div>
                       </TabsContent>
                       
                       <TabsContent value="write" className="p-0">
@@ -1098,16 +1091,15 @@ const InteractPage = () => {
                           ) : (
                             <div className="p-4 text-sm text-muted-foreground">
                               No write functions found{searchQuery ? ` matching "${searchQuery}"` : ''}.
-                </div>
-              )}
-            </div>
+                            </div>
+                          )}
+                        </div>
                       </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* Function Interaction Panel */}
               <motion.div variants={itemVariants} className="md:col-span-2 lg:col-span-3">
                 {selectedFunction ? (
                   <Card className="h-full">
@@ -1125,7 +1117,7 @@ const InteractPage = () => {
                               <Terminal className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
                             )}
                             {selectedFunction.name}
-                    </CardTitle>
+                          </CardTitle>
                           <CardDescription className="font-mono text-xs mt-1">
                             {selectedFunction.humanReadableSignature || `${selectedFunction.name}(${selectedFunction.inputs.map(i => `${i.type} ${i.name}`).join(', ')})`}
                           </CardDescription>
@@ -1138,12 +1130,11 @@ const InteractPage = () => {
                           }
                         >
                           {isReadOnlyFunction(selectedFunction) ? 'Read Function' : 'Write Function'}
-                    </Badge>
-                  </div>
-                </CardHeader>
+                        </Badge>
+                      </div>
+                    </CardHeader>
                     <CardContent className="pt-6">
                       <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Function Inputs */}
                         {functionInputs.length > 0 ? (
                           <div className="space-y-4">
                             {functionInputs.map((input, index) => (
@@ -1160,16 +1151,15 @@ const InteractPage = () => {
                                   placeholder={`Enter value for ${input.name || `parameter ${index + 1}`}`}
                                   className="font-mono"
                                 />
-                                </div>
+                              </div>
                             ))}
-                        </div>
+                          </div>
                         ) : (
                           <div className="bg-muted/20 border rounded-md p-4 text-center text-muted-foreground">
                             This function doesn't require any parameters
-                      </div>
-                    )}
-                    
-                        {/* Error message */}
+                          </div>
+                        )}
+                        
                         {callError && (
                           <Alert variant="destructive" className="text-sm">
                             <AlertTriangle className="h-4 w-4 mr-2" />
@@ -1177,7 +1167,6 @@ const InteractPage = () => {
                           </Alert>
                         )}
 
-                        {/* Submit button */}
                         <Button 
                           type="submit" 
                           className={`w-full ${
@@ -1201,7 +1190,6 @@ const InteractPage = () => {
                         </Button>
                       </form>
 
-                      {/* Function Results */}
                       <AnimatePresence>
                         {result && (
                           <motion.div
@@ -1226,11 +1214,11 @@ const InteractPage = () => {
                                 >
                                   {statusMessage?.type === 'success' ? 'Success' : 'Complete'}
                                 </Badge>
-                          </div>
-                          </div>
+                              </div>
+                            </div>
                             <div className="p-4">
                               {formatResult(result)}
-                  </div>
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -1263,9 +1251,9 @@ const InteractPage = () => {
                           <Terminal className="mr-2 h-4 w-4" />
                           Browse Write Functions
                         </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </motion.div>
             </div>
@@ -1291,12 +1279,11 @@ const InteractPage = () => {
                   >
                     Provide Bytecode Manually
                   </Button>
-          )}
-        </div>
+                )}
+              </div>
             </Card>
           )}
 
-          {/* Contract Analysis Section (conditionally rendered) */}
           {contractAnalysis && (
             <motion.div
               variants={itemVariants}
@@ -1311,7 +1298,6 @@ const InteractPage = () => {
             </motion.div>
           )}
 
-          {/* Function History */}
           {functionHistory.length > 0 && (
             <FunctionHistory
               history={functionHistory}
@@ -1327,7 +1313,7 @@ const InteractPage = () => {
         abi={functions.length > 0 ? functions : abi}
         contractAddress={contractAddress}
       />
-    </motion.div>
+    </div>
   );
 };
 
