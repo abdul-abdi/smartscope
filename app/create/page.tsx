@@ -224,6 +224,7 @@ const CreateContractPage = () => {
   // Add ref for MultiFileIDE
   const multiFileIDERef = React.useRef<MultiFileIDEHandle>(null);
   const { toast } = useToast();
+  const [showTemplateToast, setShowTemplateToast] = useState(false);
 
   useEffect(() => {
     // Set default sample contract
@@ -245,18 +246,26 @@ const CreateContractPage = () => {
           setContractCode(decodedCode);
           setActiveTab('custom');
           
-          // Show toast notification
-          toast({
-            title: 'Template Loaded',
-            description: 'Template code has been loaded into the editor',
-            type: 'success'
-          });
+          // Set flag to show toast notification
+          setShowTemplateToast(true);
         } catch (err) {
           console.error("Error decoding template code:", err);
         }
       }
     }
-  }, [toast]);
+  }, []);
+  
+  // Separate useEffect for handling the toast notification
+  useEffect(() => {
+    if (showTemplateToast) {
+      toast({
+        title: 'Template Loaded',
+        description: 'Template code has been loaded into the editor',
+        type: 'success'
+      });
+      setShowTemplateToast(false);
+    }
+  }, [showTemplateToast, toast]);
 
   // When switching tabs, update the contract code
   useEffect(() => {
