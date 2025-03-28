@@ -77,10 +77,12 @@ const roadmapItems = [
         description: 'Develop complex contract ecosystems with dependencies',
         icon: GitBranch,
         details: [
-          'File system organization',
-          'Dependency management',
-          'Contract inheritance support',
-          'Project-based development'
+          'Advanced file system organization',
+          'Project structure with folders and files',
+          'Tabbed interface for multi-file editing',
+          'Syntax highlighting and error detection',
+          'Code autocompletion and snippets',
+          'Real-time validation and linting'
         ]
       },
       {
@@ -92,6 +94,40 @@ const roadmapItems = [
           'Automatic dependency resolution',
           'External import handling',
           'Version compatibility detection'
+        ]
+      },
+      {
+        title: 'Dependency Management',
+        description: 'Smart handling of project dependencies',
+        icon: Bug,
+        details: [
+          'Automatic resolution of imports',
+          'Circular dependency detection',
+          'Visual dependency graph',
+          'Smart compilation with dependency order'
+        ]
+      },
+      {
+        title: 'Project Templates',
+        description: 'Ready-to-use smart contract templates',
+        icon: FileCode,
+        details: [
+          'ERC20 token template',
+          'NFT (ERC721) contract template',
+          'DAO governance template',
+          'Crowdfunding campaign template'
+        ]
+      },
+      {
+        title: 'Enhanced Templates System',
+        description: 'Comprehensive template browser with detailed information',
+        icon: Star,
+        details: [
+          'Categorized template library',
+          'Detailed template descriptions and use cases',
+          'Technical specifications for each template',
+          'One-click template integration with IDE',
+          'Seamless workflow between browsing and development'
         ]
       }
     ]

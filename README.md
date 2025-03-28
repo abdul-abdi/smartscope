@@ -31,6 +31,7 @@ SmartScope is an all-in-one platform for blockchain developers to build, analyze
 - 📂 **Multi-File IDE** - Develop complex contract systems with multiple files and dependencies
 - 📦 **External Library Support** - Seamless integration with popular libraries like OpenZeppelin
 - 🔄 **Dependency Management** - Automatic resolution of imports and dependencies between files
+- 🏗️ **Rich Template Library** - Categorized, ready-to-use contract templates with detailed documentation
 
 ## 🚀 Getting Started
 
@@ -108,6 +109,18 @@ SmartScope provides an end-to-end workflow for smart contract development:
 4. External libraries like OpenZeppelin are automatically detected and linked
 5. Files with dependencies are compiled together
 
+### Using Contract Templates
+
+1. Navigate to the "Templates" page
+2. Browse templates by category (Tokens, NFTs, DeFi, Governance, Utility)
+3. Click on a template card to:
+   - View detailed description
+   - See use cases and technical specifications
+   - Examine the implementation code
+4. Use the "View Details" button to access comprehensive information about any template
+5. Click "Use Template" to load it directly into the editor
+6. Templates are loaded into the custom contract editor for immediate customization
+
 ### Analyzing a Contract
 
 1. On the contract creation page, click "Analyze"
@@ -147,7 +160,7 @@ Comprehensive documentation is available in the following files:
 - [SECURITY.md](SECURITY.md) - Security policy and best practices
 - [CHANGELOG.md](CHANGELOG.md) - Version history and changes
 
-## ��️ Project Structure
+## 🏗️ Project Structure
 
 ```
 smartscope/
@@ -156,6 +169,8 @@ smartscope/
 │   ├── create/           # Contract creation pages and Multi-File IDE
 │   ├── interact/         # Contract interaction pages
 │   ├── learn/            # Educational content
+│   ├── templates/        # Contract templates library
+│   ├── community/        # Community features (upcoming)
 │   └── roadmap/          # Platform roadmap
 ├── components/           # Global components
 │   ├── providers/        # Context providers including FileSystem
@@ -178,6 +193,8 @@ SmartScope is in active development with the following roadmap:
 - Hedera Testnet Support
 - Learning Resources
 - SmartScope AI Assistant
+- Comprehensive Template System with categories and detailed documentation
+- Community and Learning Pages with integrated navigation
 
 ### In Progress (Q2 2025)
 - Enhanced Security Analysis with integration with security standards

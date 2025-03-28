@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Enhanced Templates System**: Comprehensive template browser with categories and detailed information
+  - Added dedicated templates page with categorized browsing (Tokens, NFTs, DeFi, Governance, Utility)
+  - Implemented detailed descriptions, use cases, and technical specifications for each template
+  - Added seamless template integration with the code editor
+  - Created visual template cards with difficulty indicators and feature tags
+- **Community Page**: Added placeholder for upcoming community features
+  - Created preview of planned collaboration features
+  - Added links to external community resources
+- **Improved Navigation**: Enhanced connections between learning resources and development tools
+  - Added "Browse Templates" button to Create page
+  - Updated Learn page with improved navigation to Templates and Community
+  - Implemented direct integration of templates into the editor
 - Cross-chain support (Ethereum) initial planning
 - Advanced analytics framework preparation
 - Enhanced AI features research

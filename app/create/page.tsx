@@ -232,7 +232,31 @@ const CreateContractPage = () => {
       setContractCode(defaultContract.code);
       setSelectedSample(defaultContract.name);
     }
-  }, []);
+    
+    // Check for template in URL parameters
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const templateCode = urlParams.get('code');
+      
+      if (templateCode) {
+        try {
+          const decodedCode = decodeURIComponent(templateCode);
+          setCustomContractCode(decodedCode);
+          setContractCode(decodedCode);
+          setActiveTab('custom');
+          
+          // Show toast notification
+          toast({
+            title: 'Template Loaded',
+            description: 'Template code has been loaded into the editor',
+            type: 'success'
+          });
+        } catch (err) {
+          console.error("Error decoding template code:", err);
+        }
+      }
+    }
+  }, [toast]);
 
   // When switching tabs, update the contract code
   useEffect(() => {
@@ -647,9 +671,12 @@ const CreateContractPage = () => {
 
   const handleInteract = () => {
     if (contractAddress) {
-      // Navigate to the interact page with the contract address
       router.push(`/interact/${contractAddress}`);
     }
+  };
+
+  const handleExploreTemplates = () => {
+    router.push('/templates');
   };
 
   const handleCopyContract = () => {
@@ -889,12 +916,12 @@ const CreateContractPage = () => {
               Build, compile and deploy Solidity smart contracts to Ethereum testnet in minutes — with real-time validation, security analysis, and multi-file project support.
             </motion.p>
             
-          <motion.div
+            <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex justify-center"
-          >
+              className="flex justify-center gap-3"
+            >
               <Button
                 variant={ideMode === 'advanced' ? "secondary" : "default"}
                 size="lg"
@@ -913,7 +940,16 @@ const CreateContractPage = () => {
                   </>
                 )}
               </Button>
-          </motion.div>
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                onClick={handleExploreTemplates}
+              >
+                <FileCode className="h-5 w-5" />
+                Browse Templates
+              </Button>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -1105,13 +1141,27 @@ const CreateContractPage = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeployDialogOpen(false)}>
               Cancel
-                      </Button>
+            </Button>
             <Button onClick={handleDeployWithArgs} disabled={isDeploying}>
               {isDeploying ? 'Deploying...' : 'Deploy Contract'}
-                      </Button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Additional UI elements */}
+      {deploymentSuccess && (
+        <div className="flex gap-2 mt-4">
+          <Button onClick={handleInteract} variant="default">
+            Interact with Contract
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+          <Button onClick={handleExploreTemplates} variant="outline">
+            Explore More Templates
+            <FileCode className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

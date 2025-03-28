@@ -2053,18 +2053,24 @@ contract Crowdfunding {
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
                   <Button asChild size="lg" className="gap-2">
-                  <Link href="/create">
+                    <Link href="/create">
                       <GraduationCap className="h-5 w-5" />
                       Start Building
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="gap-2">
-                    <Link href="/community">
+                    <Link href="/templates">
                       <Coffee className="h-5 w-5" />
+                      Browse Templates
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="lg" className="gap-2">
+                    <Link href="/community">
+                      <Users className="h-5 w-5" />
                       Join Community
-                  </Link>
-                </Button>
-              </div>
+                    </Link>
+                  </Button>
+                </div>
               </motion.div>
             </motion.div>
           </div>
