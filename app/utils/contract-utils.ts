@@ -521,97 +521,154 @@ export function addressFormatDebugInfo(address: string): {
 }
 
 /**
- * Formats an address specifically for Hedera Mirror Node API calls
- * Mirror Node API expects addresses without the 0x prefix
- * @param address Any contract address format
- * @returns Address formatted for Mirror Node API (without 0x prefix)
+ * Format a contract address specifically for Mirror Node API (synchronous version)
+ * This is different from EVM address formatting
+ * @param address Contract address in any format
+ * @returns Properly formatted address for Mirror Node API
  */
 export function formatAddressForMirrorNode(address: string): string {
-  // First ensure it's in EVM format using the synchronous version
-  // This is fine because this function is typically used in APIs
-  // where we already have a validated address
-  const evmAddress = formatToEvmAddress(address);
-  
-  // Check if we're dealing with a contract ID that might have been mapped differently
-  const debugLookup = {
-    original: address,
-    evmFormatted: evmAddress
-  };
-  
-  // Check if we have a cached mapping for this address
-  if (address.includes('.') && contractAddressCache.has(address)) {
-    const cachedEvmAddress = contractAddressCache.get(address)!;
-    debugLookup['cachedEvmAddress'] = cachedEvmAddress;
+  // For Hedera contract ID format (0.0.X)
+  if (/^\d+\.\d+\.\d+$/.test(address)) {
+    // Check cache first
+    if (contractAddressCache.has(address)) {
+      const cachedEvmAddress = contractAddressCache.get(address)!;
+      const formattedAddress = cachedEvmAddress.startsWith('0x') ? cachedEvmAddress.slice(2) : cachedEvmAddress;
+      console.log(`Using cached address for Mirror Node API: ${formattedAddress} (from ${address})`);
+      return formattedAddress;
+    }
     
-    // Then remove the 0x prefix which Mirror Node API doesn't expect
-    const mirrorNodeAddress = cachedEvmAddress.startsWith('0x') 
-      ? cachedEvmAddress.substring(2) 
-      : cachedEvmAddress;
+    // If no cached address, convert the numeric part to hex
+    const parts = address.split('.');
+    const contractNum = parseInt(parts[2], 10);
     
-    debugLookup['mirrorNodeFormatted'] = mirrorNodeAddress;
-    console.log('Using cached address for Mirror Node API:', debugLookup);
-    return mirrorNodeAddress;
-  }
-  
-  // Then remove the 0x prefix which Mirror Node API doesn't expect
-  const mirrorNodeAddress = evmAddress.startsWith('0x') ? evmAddress.substring(2) : evmAddress;
-  
-  debugLookup['mirrorNodeFormatted'] = mirrorNodeAddress;
-  
-  // Trigger an async lookup for future use, but don't wait for it
-  if (address.includes('.')) {
-    console.log(`Mirror Node Debug: Scheduling background lookup for ${address}`);
+    // Convert to hex and pad to 40 characters
+    const hexValue = contractNum.toString(16).padStart(40, '0');
+    console.log(`Formatted address for Mirror Node API: ${hexValue} (from ${address})`);
     
+    // Trigger an async lookup for future use, but don't wait for it
     fetchEvmAddressFromMirrorNode(address)
-      .then(actualAddress => {
-        // Store without 0x prefix for mirror node
-        const actualMirrorNodeAddress = actualAddress.startsWith('0x') 
-          ? actualAddress.substring(2) 
-          : actualAddress;
-        
-        if (actualMirrorNodeAddress !== mirrorNodeAddress) {
-          console.log(`Address cache updated - ${address} maps to ${actualAddress}`);
+      .then(evmAddress => {
+        const correctFormat = evmAddress.startsWith('0x') ? evmAddress.slice(2) : evmAddress;
+        if (correctFormat !== hexValue) {
+          console.log(`Updating cache with correct Mirror Node format for ${address}: ${correctFormat}`);
+          contractAddressCache.set(address, evmAddress); // Store with 0x for other uses
         }
       })
       .catch(err => console.warn('Background Mirror Node lookup failed:', err));
+    
+    return hexValue;
   }
   
-  console.log('Formatted address for Mirror Node API:', debugLookup);
+  // If it's already an EVM address (with or without 0x prefix)
+  if (/^(0x)?[0-9a-fA-F]{40}$/.test(address)) {
+    // Remove 0x prefix if present, Mirror Node doesn't want it
+    const formattedAddress = address.startsWith('0x') ? address.slice(2) : address;
+    console.log(`Formatted address for Mirror Node API: ${formattedAddress} (from ${address})`);
+    return formattedAddress;
+  }
   
-  return mirrorNodeAddress;
+  // For numeric format without dots (contract ID without shard/realm)
+  if (/^\d+$/.test(address)) {
+    // Check if we have a cached address for the full ID
+    const fullId = `0.0.${address}`;
+    if (contractAddressCache.has(fullId)) {
+      const cachedEvmAddress = contractAddressCache.get(fullId)!;
+      const formattedAddress = cachedEvmAddress.startsWith('0x') ? cachedEvmAddress.slice(2) : cachedEvmAddress;
+      console.log(`Using cached address for Mirror Node API: ${formattedAddress} (from ${address})`);
+      return formattedAddress;
+    }
+    
+    // Convert to hex and pad to 40 characters
+    const numValue = parseInt(address, 10);
+    const hexValue = numValue.toString(16).padStart(40, '0');
+    console.log(`Formatted address for Mirror Node API: ${hexValue} (from ${address})`);
+    
+    // Trigger an async lookup for future use, but don't wait for it
+    fetchEvmAddressFromMirrorNode(fullId)
+      .then(evmAddress => {
+        const correctFormat = evmAddress.startsWith('0x') ? evmAddress.slice(2) : evmAddress;
+        if (correctFormat !== hexValue) {
+          console.log(`Updating cache with correct Mirror Node format for ${fullId}: ${correctFormat}`);
+          contractAddressCache.set(fullId, evmAddress); // Store with 0x for other uses
+        }
+      })
+      .catch(err => console.warn('Background Mirror Node lookup failed:', err));
+    
+    return hexValue;
+  }
+  
+  // If we can't determine the format, return as is without 0x prefix
+  const formattedAddress = address.startsWith('0x') ? address.slice(2) : address;
+  console.log(`Formatted address for Mirror Node API: ${formattedAddress} (from ${address})`);
+  return formattedAddress;
 }
 
 /**
- * Async version of formatAddressForMirrorNode that performs a Mirror Node lookup
- * @param address Any contract address format
- * @returns Promise with address formatted for Mirror Node API (without 0x prefix)
+ * Format a contract address specifically for Mirror Node API
+ * This is different from EVM address formatting
+ * @param address Contract address in any format
+ * @returns Properly formatted address for Mirror Node API
  */
 export async function formatAddressForMirrorNodeAsync(address: string): Promise<string> {
-  try {
-    // For contract IDs, do a lookup to get the proper mapping
-    if (address.includes('.')) {
-      // Get the accurate EVM address
-      const evmAddress = await formatToEvmAddressAsync(address);
+  console.log(`Async formatted address for Mirror Node API: ${address}`);
+  
+  // For Hedera contract ID format (0.0.X)
+  if (/^\d+\.\d+\.\d+$/.test(address)) {
+    try {
+      // First convert to EVM address using the async function that calls Mirror Node
+      const evmAddress = await fetchEvmAddressFromMirrorNode(address);
       
       // Remove 0x prefix for Mirror Node API
-      const mirrorNodeAddress = evmAddress.startsWith('0x') 
-        ? evmAddress.substring(2) 
-        : evmAddress;
+      const formattedAddress = evmAddress.startsWith('0x') ? evmAddress.slice(2) : evmAddress;
+      console.log(`Async formatted address for Mirror Node API: ${formattedAddress} (from ${address})`);
+      return formattedAddress;
+    } catch (error) {
+      console.error(`Error converting Hedera ID to EVM format: ${error}`);
       
-      console.log(`Async formatted address for Mirror Node API: ${mirrorNodeAddress} (from ${address})`);
-      return mirrorNodeAddress;
+      // Fallback to simple conversion for the API
+      // Get the contract ID number (the third part)
+      const parts = address.split('.');
+      const contractNum = parseInt(parts[2], 10);
+      
+      // Convert to hex and pad to 40 characters
+      const hexValue = contractNum.toString(16).padStart(40, '0');
+      console.log(`Fallback Hedera ID formatting: ${hexValue} (from ${address})`);
+      return hexValue;
     }
-    
-    // For EVM addresses, just remove the 0x prefix
-    if (address.startsWith('0x')) {
-      return address.substring(2);
-    }
-    
-    // If it's already without prefix, return as-is
-    return address;
-  } catch (error) {
-    console.error('Error in formatAddressForMirrorNodeAsync:', error);
-    // Fallback to the sync version
-    return formatAddressForMirrorNode(address);
   }
+  
+  // If it's already an EVM address (with or without 0x prefix)
+  if (/^(0x)?[0-9a-fA-F]{40}$/.test(address)) {
+    // Remove 0x prefix if present, Mirror Node doesn't want it
+    const formattedAddress = address.startsWith('0x') ? address.slice(2) : address;
+    console.log(`Async formatted address for Mirror Node API: ${formattedAddress} (from ${address})`);
+    return formattedAddress;
+  }
+  
+  // For numeric format without dots (contract ID without shard/realm)
+  if (/^\d+$/.test(address)) {
+    try {
+      // Try looking up the full ID with shard.realm.num format
+      const fullId = `0.0.${address}`;
+      const evmAddress = await fetchEvmAddressFromMirrorNode(fullId);
+      
+      // Remove 0x prefix for Mirror Node API
+      const formattedAddress = evmAddress.startsWith('0x') ? evmAddress.slice(2) : evmAddress;
+      console.log(`Async formatted address for Mirror Node API: ${formattedAddress} (from ${address})`);
+      return formattedAddress;
+    } catch (error) {
+      console.error(`Error converting numeric ID to EVM format: ${error}`);
+      
+      // Fallback to simple conversion
+      const numValue = parseInt(address, 10);
+      const hexValue = numValue.toString(16).padStart(40, '0');
+      console.log(`Fallback numeric ID formatting: ${hexValue} (from ${address})`);
+      return hexValue;
+    }
+  }
+  
+  // If we can't determine the format, return as is without 0x prefix
+  const formattedAddress = address.startsWith('0x') ? address.slice(2) : address;
+  console.log(`Async formatted address for Mirror Node API: ${formattedAddress} (from ${address})`);
+  return formattedAddress;
 } 

@@ -35,18 +35,24 @@ export default function InteractPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ contractAddress }),
+        body: JSON.stringify({ 
+          contractAddress,
+          disableTransactionHistory: true,
+          preferSource: true,
+          bypassCache: true
+        }),
       });
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Contract not found or not accessible');
+        throw new Error(error.error || `Contract not found (${response.status}): ${response.statusText}`);
       }
       
       // Contract exists, navigate to the contract page
       window.location.href = `/interact/${contractAddress}`;
     } catch (error) {
       setIsLoading(false);
+      console.error('Contract verification error:', error);
       toast({
         title: 'Contract Not Found',
         description: error instanceof Error ? error.message : 'Unable to verify contract address',
@@ -129,8 +135,17 @@ export default function InteractPage() {
                       id="contractAddress"
                       placeholder="e.g. 0.0.1234567 or 0x..."
                       value={contractAddress}
-                      onChange={(e) => setContractAddress(e.target.value)}
-                      className="pl-10"
+                      onChange={(e) => {
+                        const input = e.target.value.trim();
+                        // Basic validation for Hedera ID format or EVM address
+                        const isValidHederaId = /^\d+(\.\d+){0,2}$/.test(input);
+                        const isValidEvmAddress = /^(0x)?[0-9a-fA-F]{40}$/.test(input);
+                        
+                        if (input === '' || isValidHederaId || isValidEvmAddress) {
+                          setContractAddress(input);
+                        }
+                      }}
+                      className={`pl-10 ${contractAddress && !/^(\d+(\.\d+){0,2}|(0x)?[0-9a-fA-F]{40})$/.test(contractAddress) ? 'border-red-500' : ''}`}
                       disabled={isLoading}
                     />
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -138,8 +153,21 @@ export default function InteractPage() {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Enter the Hedera contract ID or Solidity address
+                    Enter the Hedera contract ID (0.0.XXXXX) or Solidity address (0x...)
                   </p>
+                  {contractAddress && !/^(\d+(\.\d+){0,2}|(0x)?[0-9a-fA-F]{40})$/.test(contractAddress) && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Please enter a valid Hedera contract ID or EVM address format
+                    </p>
+                  )}
+                  <div className="mt-2 text-xs text-muted-foreground border border-muted-foreground/20 rounded-md p-2 bg-muted/20">
+                    <p className="font-medium mb-1">Supported formats:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      <li>Hedera Contract ID: <span className="font-mono">0.0.XXXXX</span></li>
+                      <li>EVM Address: <span className="font-mono">0xabc...123</span></li>
+                      <li>Numeric ID: <span className="font-mono">XXXXX</span> (converted to 0.0.XXXXX)</li>
+                    </ul>
+                  </div>
                 </div>
                 
                 <Button 
@@ -232,11 +260,33 @@ export default function InteractPage() {
                 Sample Contract Addresses
               </h4>
               <div className="space-y-2">
-                <div className="p-2 bg-muted/50 rounded-md text-sm font-mono">0.0.1234567</div>
-                <div className="p-2 bg-muted/50 rounded-md text-sm font-mono">0.0.7654321</div>
+                <div className="p-2 bg-muted/50 rounded-md text-sm font-mono flex justify-between items-center">
+                  <span>0x0000000000000000000000000000000000584c93</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setContractAddress('0x0000000000000000000000000000000000584c93');
+                    }}
+                  >
+                    Use
+                  </Button>
+                </div>
+                <div className="p-2 bg-muted/50 rounded-md text-sm font-mono flex justify-between items-center">
+                  <span>0.0.5786771</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setContractAddress('0.0.5786771');
+                    }}
+                  >
+                    Use
+                  </Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                These are example contracts for demonstration purposes
+                These are working example contracts on Hedera testnet - the two examples above are actually the same contract in different formats
               </p>
             </div>
           </motion.div>

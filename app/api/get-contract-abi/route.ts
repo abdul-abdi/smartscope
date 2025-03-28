@@ -180,27 +180,48 @@ export async function POST(request: Request) {
     const mirrorNodeUrl = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${mirrorNodeAddress}`;
     console.log('Querying mirror node:', mirrorNodeUrl);
     
-    const response = await fetch(mirrorNodeUrl);
+    let contractData: any;
     
-    if (!response.ok) {
-      throw new Error(`Mirror node API returned ${response.status}: ${response.statusText}`);
-    }
-    
-    const contractData = await response.json();
-    console.log('Contract data retrieved');
-    
-    // If we have an ABI from mirror node, use it directly
-    if (contractData.abi && contractData.abi.length > 0) {
-      // We may have to parse it if it's a string
-      const parsedAbi = typeof contractData.abi === 'string' 
-        ? JSON.parse(contractData.abi) 
-        : contractData.abi;
+    try {
+      const response = await fetch(mirrorNodeUrl);
       
-      return NextResponse.json({
-        abi: filterUnknownFunctions(parsedAbi),
-        source: 'source',
-        message: 'ABI retrieved from verified source code'
-      });
+      if (!response.ok) {
+        const errorStatus = response.status;
+        const errorText = response.statusText;
+        
+        // Provide specific error messages based on status code
+        if (errorStatus === 404) {
+          return NextResponse.json({ 
+            error: `Contract ${contractAddress} not found on the Hedera network. Please verify the contract address and try again.` 
+          }, { status: 404 });
+        } else if (errorStatus === 400) {
+          return NextResponse.json({ 
+            error: `Invalid contract address format (${contractAddress}). Please use a valid Hedera contract ID or EVM address.` 
+          }, { status: 400 });
+        } else {
+          throw new Error(`Mirror node API returned ${errorStatus}: ${errorText}`);
+        }
+      }
+      
+      contractData = await response.json();
+      console.log('Contract data retrieved');
+      
+      // If we have an ABI from mirror node, use it directly
+      if (contractData.abi && contractData.abi.length > 0) {
+        // We may have to parse it if it's a string
+        const parsedAbi = typeof contractData.abi === 'string' 
+          ? JSON.parse(contractData.abi) 
+          : contractData.abi;
+        
+        return NextResponse.json({
+          abi: filterUnknownFunctions(parsedAbi),
+          source: 'source',
+          message: 'ABI retrieved from verified source code'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error querying mirror node:', error);
+      throw new Error('Failed to query mirror node');
     }
     
     // Skip transaction history if requested (prioritize bytecode)
