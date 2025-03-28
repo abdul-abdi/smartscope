@@ -2,28 +2,29 @@
 
 ## 📋 Supported Versions
 
-SmartScope is still in active development. The following versions are currently being maintained with security updates:
-
 | Version | Support Status |
 |:-------:|:--------------:|
 | 1.x.x   | ✅ Supported   |
 | < 1.0   | ❌ Unsupported |
 
----
-
 ## 🛡️ Reporting a Vulnerability
 
-We take the security of SmartScope seriously. If you believe you've found a security vulnerability, please follow these steps:
+If you believe you've found a security vulnerability in SmartScope, please contact us immediately.
 
-> ⚠️ **IMPORTANT: Do not disclose the vulnerability publicly**
+**DO NOT disclose the vulnerability publicly.**
 
-### Reporting Process
+### Contact
 
-1. **Email us at [security@smartscope.dev](mailto:security@smartscope.dev)** with:
-   - A detailed description of the vulnerability
-   - Clear steps to reproduce the issue
-   - Information about potential impact
-   - Any suggestions for mitigation (if available)
+Email: [Abdullahiabdi1233@gmail.com](mailto:Abdullahiabdi1233@gmail.com)
+
+We take all security reports seriously and will respond as quickly as possible.
+
+## 🔒 Basic Security Recommendations
+
+- Keep your API keys secure and never share them
+- Test smart contracts thoroughly on testnet before deployment
+- Keep your browser updated
+- Verify contract addresses before interaction
 
 ---
 
@@ -94,4 +95,4 @@ We are continuously improving our security practices:
 
 ---
 
-> For any security-related questions or concerns not covered here, please contact us at [security@smartscope.dev](mailto:security@smartscope.dev) 
+> For any security-related questions or concerns not covered here, please contact us at [Abdullahiabdi1233@gmail.com](mailto:Abdullahiabdi1233@gmail.com) 

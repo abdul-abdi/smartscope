@@ -137,6 +137,54 @@ const roadmapItems = [
     status: 'current',
     items: [
       {
+        title: 'Smart Contract Decompiler',
+        description: 'Advanced tools to reverse-engineer contracts from bytecode',
+        icon: FileCode,
+        details: [
+          'Full decompilation from bytecode to Solidity',
+          'ABI-assisted reconstruction',
+          'Function signature matching',
+          'Source code structure recovery',
+          'Developer comments and documentation generation'
+        ]
+      },
+      {
+        title: 'Enhanced Contract Interaction UI',
+        description: 'Redesigned interface for seamless contract interaction',
+        icon: Zap,
+        details: [
+          'Intuitive function organization',
+          'Real-time transaction updates',
+          'Interactive parameter input assistance',
+          'Visual state change tracking',
+          'Improved error handling and feedback'
+        ]
+      },
+      {
+        title: 'One-Click Contract Verification',
+        description: 'Streamlined verification process for Hedera contracts',
+        icon: CheckCircle2,
+        details: [
+          'Automated verification on Hedera Testnet',
+          'Source code and ABI matching',
+          'Compiler version detection',
+          'Optimization settings detection',
+          'Public verification badge and profile'
+        ]
+      },
+      {
+        title: 'User/Developer Mode Toggle',
+        description: 'Contextual interface adapting to user expertise level',
+        icon: Users,
+        details: [
+          'Simplified UI for basic users',
+          'Advanced capabilities for developers',
+          'Context-sensitive documentation',
+          'Smooth transition between modes',
+          'Customizable feature visibility'
+        ]
+      },
+      {
         title: 'Enhanced Security Analysis',
         description: 'Advanced security scanning and vulnerability detection',
         icon: Shield,
@@ -175,6 +223,42 @@ const roadmapItems = [
     title: 'Future Plans (Q3 2025)',
     status: 'future',
     items: [
+      {
+        title: 'Integrated Security Monitoring',
+        description: 'Ongoing security monitoring for deployed contracts',
+        icon: Shield,
+        details: [
+          'Real-time vulnerability scanning',
+          'Automated security alerts',
+          'Exploit prevention recommendations',
+          'Post-deployment security scoring',
+          'Historical security audit trail'
+        ]
+      },
+      {
+        title: 'Contract Template Marketplace',
+        description: 'Community-driven template ecosystem with reputation system',
+        icon: Globe,
+        details: [
+          'User-submitted contract templates',
+          'Template ratings and reviews',
+          'Template monetization options',
+          'Expert verification badges',
+          'Customization and forking options'
+        ]
+      },
+      {
+        title: 'Educational Achievement System',
+        description: 'Gamified learning path for smart contract development',
+        icon: BookOpen,
+        details: [
+          'Smart contract development challenges',
+          'Progressive skill-building modules',
+          'Achievement badges and certifications',
+          'Community recognition system',
+          'Practical security training exercises'
+        ]
+      },
       {
         title: 'Cross-Chain Support',
         description: 'Expand platform capabilities to support multiple blockchain networks',
