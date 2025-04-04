@@ -4,24 +4,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Input } from '../../../../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Badge } from '../../../../components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../../components/ui/tooltip';
-import { BookOpen, Pencil, Code, Terminal, CheckCircle } from 'lucide-react';
-
-interface FunctionInput {
-  name: string;
-  type: string;
-  value: string;
-}
-
-interface ContractFunction {
-  name: string;
-  inputs: FunctionInput[];
-  outputs: Array<{ type: string }>;
-  stateMutability: string;
-  humanReadableSignature?: string;
-  verified?: boolean;
-  constant?: boolean;
-}
+import { Code, Terminal } from 'lucide-react';
+import { ContractFunction } from '../../../types/contract';
+import { isReadOnlyFunction, groupFunctionsByType } from '../../../utils/interact-utils';
+import { FunctionItem } from '../../components/ui';
 
 interface FunctionListProps {
   functions: ContractFunction[];
@@ -42,112 +28,15 @@ const FunctionList: React.FC<FunctionListProps> = ({
   activeTab,
   onTabChange
 }) => {
-  // Helper to determine if a function is read-only
-  const isReadOnlyFunction = (func: ContractFunction): boolean => {
-    if (!func) return false;
-    
-    // Check explicit markers
-    const isViewOrPure = func.stateMutability === 'view' || func.stateMutability === 'pure';
-    const isConstant = func.constant === true;
-    
-    // Check name patterns
-    const hasGetterNamePattern = 
-      func.name.startsWith('get') || 
-      func.name.startsWith('is') || 
-      func.name.startsWith('has') || 
-      func.name.startsWith('total') || 
-      func.name === 'symbol' || 
-      func.name === 'name' || 
-      func.name === 'decimals' || 
-      func.name === 'balanceOf' || 
-      func.name === 'allowance';
-      
-    // Check outputs
-    const hasOutputs = func.outputs && func.outputs.length > 0;
-    
-    // Determine if it's read-only
-    return isViewOrPure || isConstant || (hasGetterNamePattern && hasOutputs);
-  };
-
-  // Filter functions by type (read/write) and search query
-  const filteredFunctions = (readOnly: boolean) => {
-    return functions
-      .filter(f => {
-        const isReadFunction = isReadOnlyFunction(f);
-        return isReadFunction === readOnly;
-      })
-      .filter(f => {
-        if (!searchQuery) return true;
-        return f.name.toLowerCase().includes(searchQuery.toLowerCase());
-      });
-  };
-  
-  const viewFunctions = filteredFunctions(true);
-  const writeFunctions = filteredFunctions(false);
-
-  // Function item component with status indication
-  const renderFunctionItem = (func: ContractFunction, index: number) => {
-    // Use the shared helper function
-    const isRead = isReadOnlyFunction(func);
-    
-    return (
-      <div
-        key={index}
-        className={`border rounded-md p-3 cursor-pointer transition-colors ${
-          selectedFunction?.name === func.name
-            ? isRead 
-              ? 'bg-blue-100 border-blue-300 dark:bg-blue-900 dark:border-blue-700'
-              : 'bg-amber-100 border-amber-300 dark:bg-amber-900 dark:border-amber-700'
-            : 'hover:bg-muted/50 border-border'
-        }`}
-        onClick={() => onFunctionSelect(func)}
-      >
-        <div className="flex items-center justify-between mb-1">
-          <span className="font-medium text-sm">
-            {func.name}
-          </span>
-          <div className="flex items-center space-x-1">
-            {func.verified && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1 py-0 h-4 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                      <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
-                      verified
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Function verified on-chain</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            <Badge 
-              variant="outline" 
-              className={isRead 
-                ? "bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0 h-4 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                : "bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1 py-0 h-4 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-              }
-            >
-              {isRead ? 'read' : 'write'}
-            </Badge>
-          </div>
-        </div>
-        {func.humanReadableSignature && (
-          <div className="font-mono text-xs text-muted-foreground truncate">
-            {func.humanReadableSignature}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Use the shared groupFunctionsByType utility
+  const { readFunctions: viewFunctions, writeFunctions } = groupFunctionsByType(functions, searchQuery);
 
   return (
-    <motion.div 
+    <motion.div
       variants={{
         hidden: { opacity: 0, y: 20 },
-        visible: { 
-          opacity: 1, 
+        visible: {
+          opacity: 1,
           y: 0,
           transition: { duration: 0.5 }
         }
@@ -170,7 +59,7 @@ const FunctionList: React.FC<FunctionListProps> = ({
               />
             </div>
           </div>
-          
+
           <Tabs defaultValue="read" value={activeTab} onValueChange={onTabChange} className="w-full">
             <TabsList className="w-full grid grid-cols-2 sticky top-20 z-10">
               <TabsTrigger value="read" className="flex items-center gap-1">
@@ -188,13 +77,18 @@ const FunctionList: React.FC<FunctionListProps> = ({
                 </span>
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="read" className="p-4">
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 {viewFunctions.length > 0 ? (
                   <div className="space-y-1">
                     {viewFunctions.map((func, index) => (
-                      renderFunctionItem(func, index)
+                      <FunctionItem 
+                        key={index}
+                        func={func}
+                        selected={selectedFunction?.name === func.name}
+                        onClick={() => onFunctionSelect(func)}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -204,13 +98,18 @@ const FunctionList: React.FC<FunctionListProps> = ({
                 )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="write" className="p-4">
               <div className="max-h-[70vh] overflow-y-auto pr-2">
                 {writeFunctions.length > 0 ? (
                   <div className="space-y-1">
                     {writeFunctions.map((func, index) => (
-                      renderFunctionItem(func, index)
+                      <FunctionItem 
+                        key={index}
+                        func={func}
+                        selected={selectedFunction?.name === func.name}
+                        onClick={() => onFunctionSelect(func)}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -225,4 +124,4 @@ const FunctionList: React.FC<FunctionListProps> = ({
   );
 };
 
-export default FunctionList; 
+export default FunctionList;

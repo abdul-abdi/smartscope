@@ -339,7 +339,7 @@ async function compileContract(code: string, analysisWarnings: string[], securit
           const response = await fetch(url, {
             headers: {
               'Accept': 'text/plain',
-              'User-Agent': 'SmartScope-IDE-Compiler/1.0'
+              'User-Agent': 'Karibu-IDE-Compiler/1.0'
             }
           });
           
@@ -360,7 +360,7 @@ async function compileContract(code: string, analysisWarnings: string[], securit
               const response = await fetch(fallbackUrl, {
                 headers: {
                   'Accept': 'text/plain',
-                  'User-Agent': 'SmartScope-IDE-Compiler/1.0'
+                  'User-Agent': 'Karibu-IDE-Compiler/1.0'
                 }
               });
               

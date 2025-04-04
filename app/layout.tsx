@@ -8,8 +8,8 @@ import { AIAssistant } from '../components/ui/ai-assistant';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://smartscope.vercel.app'),
-  title: 'SmartScope - Smart Contract Analyzer for Hedera',
+  metadataBase: new URL('https://karibu.vercel.app'),
+  title: 'Karibu - Smart Contract Analyzer for Hedera',
   description: 'Analyze, deploy, and interact with smart contracts on Hedera Testnet with zero setup, AI assistance, and no wallet required.',
   icons: {
     icon: [
@@ -21,16 +21,16 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   openGraph: {
-    title: 'SmartScope - Smart Contract Analyzer for Hedera',
+    title: 'Karibu - Smart Contract Analyzer for Hedera',
     description: 'Analyze, deploy, and interact with smart contracts on Hedera Testnet with zero setup, AI assistance, and no wallet required.',
-    url: 'https://smartscope.vercel.app',
-    siteName: 'SmartScope',
+    url: 'https://karibu.vercel.app',
+    siteName: 'Karibu',
     images: [
       {
         url: '/favicon.svg',
         width: 200,
         height: 200,
-        alt: 'SmartScope Logo',
+        alt: 'Karibu Logo',
       },
     ],
     locale: 'en_US',
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SmartScope - Smart Contract Analyzer for Hedera',
+    title: 'Karibu - Smart Contract Analyzer for Hedera',
     description: 'Analyze, deploy, and interact with smart contracts on Hedera Testnet with zero setup, AI assistance, and no wallet required.',
     images: ['/favicon.svg'],
   },

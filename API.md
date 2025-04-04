@@ -1,18 +1,16 @@
-# SmartScope API Documentation
+# Karibu API Documentation
 
-This document provides information about the SmartScope API endpoints and how to use them.
+This document provides information about the Karibu API endpoints and how to use them.
 
 ## Authentication
 
-Currently, SmartScope APIs do not require authentication as they operate without wallet connection requirements. This is by design to provide a seamless developer experience.
+Currently, Karibu APIs do not require authentication as they operate without wallet connection requirements. This is by design to provide a seamless developer experience.
 
 ## Base URL
 
-All API endpoints are relative to the application base URL:
+All API endpoints should be prefixed with:
 
-```
-https://your-smartscope-deployment.vercel.app/api
-```
+https://your-karibu-deployment.vercel.app/api
 
 ## API Endpoints
 

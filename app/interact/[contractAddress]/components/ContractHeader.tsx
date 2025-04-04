@@ -1,22 +1,28 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
-import { ArrowLeft, Copy, CheckCircle, ExternalLink, FileCode, Terminal, Code } from 'lucide-react';
+import { ArrowLeft, Copy, CheckCircle, ExternalLink, FileCode, Terminal, Code, Info, Shield } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../../components/ui/tooltip';
 import { Badge } from '../../../../components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../../components/ui/card';
+import { motion } from 'framer-motion';
 
 export interface ContractHeaderProps {
   contractAddress: string;
   abiSource?: string;
   functionsCount?: number;
   onViewAbi?: () => void;
+  simplified?: boolean;
+  isVerified?: boolean;
 }
 
 const ContractHeader: React.FC<ContractHeaderProps> = ({ 
   contractAddress,
   abiSource,
   functionsCount = 0,
-  onViewAbi
+  onViewAbi,
+  simplified = false,
+  isVerified = false
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -26,6 +32,80 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // If simplified is true, return a simplified card version (previously ContractInfo component)
+  if (simplified) {
+    return (
+      <motion.div 
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { duration: 0.5 }
+          }
+        }}
+        className="mb-6"
+      >
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center">
+              <Terminal className="mr-2 h-5 w-5 text-blue-500" />
+              Contract Interaction
+            </CardTitle>
+            <CardDescription>
+              Interact with smart contract at: <span className="font-mono">{contractAddress}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-2 text-sm">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="flex items-center">
+                <span className="text-muted-foreground mr-1">Address:</span>
+                <code className="bg-muted px-1 py-0.5 rounded text-xs">{contractAddress}</code>
+              </div>
+              {abiSource && (
+                <div className="flex items-center">
+                  <span className="text-muted-foreground mr-1">Source:</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                    abiSource === 'verified' || abiSource === 'explorer'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                      : abiSource === 'bytecode' || abiSource === 'manual-bytecode'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+                      : abiSource === 'transaction'
+                      ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
+                  }`}>
+                    {abiSource === 'bytecode' && 'Bytecode Analysis'}
+                    {abiSource === 'manual-bytecode' && 'Manual Bytecode'}
+                    {abiSource === 'verified' && 'Verified Contract'}
+                    {abiSource === 'explorer' && 'Explorer Verified'}
+                    {abiSource === 'transaction' && 'Transaction History'}
+                    {abiSource === 'unknown' && 'Unknown Source'}
+                    {!['bytecode', 'manual-bytecode', 'verified', 'explorer', 'transaction', 'unknown'].includes(abiSource) && abiSource}
+                  </span>
+                </div>
+              )}
+              {functionsCount !== undefined && (
+                <div className="flex items-center">
+                  <span className="text-muted-foreground mr-1">Functions:</span>
+                  <span className="font-medium">{functionsCount}</span>
+                </div>
+              )}
+              {isVerified && (
+                <div className="flex items-center">
+                  <Badge variant="outline" className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400">
+                    <Shield className="h-3 w-3" />
+                    ABI Verified
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  // Regular full header display
   return (
     <div className="mb-4">
       <div className="flex items-center mb-2">
@@ -104,6 +184,48 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({
               <span>View ABI</span>
             </Button>
           )}
+
+          {isVerified && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className="ml-2 mr-2 bg-green-50 text-green-800 border-green-200 cursor-help dark:bg-green-900/20 dark:text-green-400 flex items-center gap-1"
+                  >
+                    <Shield className="h-3 w-3 mr-1" />
+                    ABI Verified
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-xs">
+                    This contract has a verified ABI. All functions are accurately detected and available for interaction.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {abiSource === 'bytecode' && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className="ml-2 bg-amber-50 text-amber-800 border-amber-200 cursor-help dark:bg-amber-900/20 dark:text-amber-400"
+                  >
+                    <Info className="h-3 w-3 mr-1" />
+                    Bytecode-derived
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-xs">
+                    This ABI was derived from contract bytecode analysis. Some functions may be missing or incomplete.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
       
@@ -119,13 +241,75 @@ const ContractHeader: React.FC<ContractHeaderProps> = ({
               {functionsCount} functions
             </Badge>
             
-            <Badge variant="outline" className="flex items-center gap-1">
-              <FileCode className="h-3 w-3" />
-              {abiSource === 'bytecode' ? 'Bytecode Analysis' : 
-               abiSource === 'manual-bytecode' ? 'Manual Bytecode' : 
-               abiSource === 'explorer' ? 'Explorer Verified' : 
-               abiSource}
-            </Badge>
+            {isVerified && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
+              >
+                <Shield className="h-3 w-3" />
+                ABI Verified
+              </Badge>
+            )}
+            
+            {abiSource === 'bytecode' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
+              >
+                <FileCode className="h-3 w-3" />
+                Bytecode Analysis
+              </Badge>
+            )}
+            
+            {abiSource === 'manual-bytecode' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
+              >
+                <FileCode className="h-3 w-3" />
+                Manual Bytecode
+              </Badge>
+            )}
+            
+            {abiSource === 'verified' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
+              >
+                <CheckCircle className="h-3 w-3" />
+                Verified Contract
+              </Badge>
+            )}
+            
+            {abiSource === 'explorer' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
+              >
+                <FileCode className="h-3 w-3" />
+                Explorer Verified
+              </Badge>
+            )}
+            
+            {abiSource === 'transaction' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400"
+              >
+                <FileCode className="h-3 w-3" />
+                Transaction History
+              </Badge>
+            )}
+            
+            {abiSource === 'unknown' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1"
+              >
+                <FileCode className="h-3 w-3" />
+                Unknown Source
+              </Badge>
+            )}
           </div>
         )}
       </div>

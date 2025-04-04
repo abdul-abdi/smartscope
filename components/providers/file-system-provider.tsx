@@ -9,13 +9,13 @@ const FileSystemContext = createContext<FileSystemContextType | undefined>(undef
 
 // Helper function to save project to localStorage
 const saveProjectToLocalStorage = (project: FileSystemItem[]) => {
-  localStorage.setItem('smartscope-project', JSON.stringify(project));
+  localStorage.setItem('karibu-project', JSON.stringify(project));
 };
 
 // Helper function to load project from localStorage
 const loadProjectFromLocalStorage = (): FileSystemItem[] => {
   try {
-    const data = localStorage.getItem('smartscope-project');
+    const data = localStorage.getItem('karibu-project');
     if (data) {
       // Need to convert string dates back to Date objects
       const parsed = JSON.parse(data);

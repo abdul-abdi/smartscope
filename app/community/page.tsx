@@ -51,7 +51,7 @@ export default function CommunityPage() {
               Community Hub
             </h1>
             <p className="text-xl text-foreground/80 mb-8">
-              Join our community of developers building on Hedera with SmartScope
+              Join our community of developers building on Hedera with Karibu
             </p>
           </motion.div>
         </div>

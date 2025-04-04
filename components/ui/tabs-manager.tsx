@@ -85,7 +85,7 @@ export const TabsManager = memo<TabsManagerProps>(({
   // Load open tabs from localStorage on mount - run only once on mount
   useEffect(() => {
     try {
-      const savedOpenTabIds = localStorage.getItem('smartscope-open-tabs');
+      const savedOpenTabIds = localStorage.getItem('karibu-open-tabs');
       if (savedOpenTabIds) {
         const tabIds = JSON.parse(savedOpenTabIds) as string[];
         const loadedTabs = tabIds
@@ -121,7 +121,7 @@ export const TabsManager = memo<TabsManagerProps>(({
         
         // Save to localStorage
         localStorage.setItem(
-          'smartscope-open-tabs',
+          'karibu-open-tabs',
           JSON.stringify(newOpenTabs.map(tab => tab.id))
         );
         
@@ -148,7 +148,7 @@ export const TabsManager = memo<TabsManagerProps>(({
       
       // Save to localStorage
       localStorage.setItem(
-        'smartscope-open-tabs',
+        'karibu-open-tabs',
         JSON.stringify(newOpenTabs.map(tab => tab.id))
       );
       

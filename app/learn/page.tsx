@@ -16,7 +16,7 @@ export default function LearnPage() {
   
   // Define all sections data
   const sections = [
-    { id: 'platform-guide', label: 'Platform Guide', icon: Coffee, description: 'Learn how to use SmartScope effectively' },
+    { id: 'platform-guide', label: 'Platform Guide', icon: Coffee, description: 'Learn how to use Karibu effectively' },
     { id: 'basics', label: 'Smart Contract Basics', icon: Book, description: 'Introduction to smart contracts and their applications' },
     { id: 'solidity', label: 'Solidity Fundamentals', icon: Code, description: 'Learn the basics of Solidity programming language' },
     { id: 'hedera', label: 'Hedera Network', icon: Shield, description: 'Explore the Hedera network and its features' },
@@ -270,14 +270,14 @@ export default function LearnPage() {
                       className="prose prose-lg dark:prose-invert max-w-none"
                     >
                       <p>
-                        Welcome to SmartScope! This comprehensive guide will walk you through all the features and capabilities
+                        Welcome to Karibu! This comprehensive guide will walk you through all the features and capabilities
                         of our platform for developing, validating, and deploying smart contracts on the Hedera network.
                       </p>
 
                       <h3>Platform Overview</h3>
                       <div className="bg-muted/50 rounded-lg p-6 border border-border my-6">
                         <p className="mb-4">
-                          SmartScope is designed to provide a seamless experience for smart contract development on Hedera.
+                          Karibu is designed to provide a seamless experience for smart contract development on Hedera.
                           Whether you're creating new contracts, interacting with existing ones, or checking wallet deployments,
                           our platform has you covered.
                         </p>
@@ -1220,7 +1220,7 @@ async function deployContract() {
                         </ul>
                       </div>
                       
-                      <p>With SmartScope, this entire deployment process is simplified to a few clicks, handling compilation, deployment, and verification automatically.</p>
+                      <p>With Karibu, this entire deployment process is simplified to a few clicks, handling compilation, deployment, and verification automatically.</p>
                   
                   <div className="mt-6 bg-muted p-4 rounded-lg">
                         <h4 className="font-medium">Ready to try deploying a contract yourself?</h4>

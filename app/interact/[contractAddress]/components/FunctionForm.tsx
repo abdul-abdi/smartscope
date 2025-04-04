@@ -4,24 +4,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Button } from '../../../../components/ui/button';
 import { Label } from '../../../../components/ui/label';
 import { Input } from '../../../../components/ui/input';
-import { Loader2, Send, BookOpen, Terminal, Code, Pencil } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import ContractTransactionDetails from './ContractTransactionDetails';
-
-interface FunctionInput {
-  name: string;
-  type: string;
-  value: string;
-}
-
-interface ContractFunction {
-  name: string;
-  inputs: FunctionInput[];
-  outputs: Array<{ type: string }>;
-  stateMutability: string;
-  humanReadableSignature?: string;
-  verified?: boolean;
-  constant?: boolean;
-}
+import { ContractFunction, FunctionInput } from '../../../types/contract';
+import { isReadOnlyFunction } from '../../../utils/interact-utils';
+import { FunctionIcon, FunctionTypeBadge } from '../../components/ui';
 
 interface FunctionFormProps {
   selectedFunction: ContractFunction | null;
@@ -44,39 +31,12 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
   hasWriteFunctionSuggestion,
   onRetryAsWriteFunction
 }) => {
-  // Helper to determine if a function is read-only
-  const isReadOnlyFunction = (func: ContractFunction): boolean => {
-    if (!func) return false;
-    
-    // Check explicit markers
-    const isViewOrPure = func.stateMutability === 'view' || func.stateMutability === 'pure';
-    const isConstant = func.constant === true;
-    
-    // Check name patterns
-    const hasGetterNamePattern = 
-      func.name.startsWith('get') || 
-      func.name.startsWith('is') || 
-      func.name.startsWith('has') || 
-      func.name.startsWith('total') || 
-      func.name === 'symbol' || 
-      func.name === 'name' || 
-      func.name === 'decimals' || 
-      func.name === 'balanceOf' || 
-      func.name === 'allowance';
-      
-    // Check outputs
-    const hasOutputs = func.outputs && func.outputs.length > 0;
-    
-    // Determine if it's read-only
-    return isViewOrPure || isConstant || (hasGetterNamePattern && hasOutputs);
-  };
-
   if (!selectedFunction) {
     return (
       <Card className="h-full border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-16 px-4">
           <div className="rounded-full bg-primary/10 p-4 mb-6">
-            <Terminal className="h-10 w-10 text-primary" />
+            <FunctionIcon func={{ name: '', inputs: [], outputs: [], stateMutability: '' }} className="h-10 w-10 text-primary" />
           </div>
           <h3 className="text-xl font-medium mb-3 text-center">Select a Function to Interact</h3>
           <p className="text-muted-foreground text-center max-w-md">
@@ -93,19 +53,9 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
     <Card className="border-primary/20 shadow-sm">
       <CardHeader className={`pb-3 ${isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-amber-50/50 dark:bg-amber-900/10'}`}>
         <CardTitle className="flex items-center text-lg">
-          {isRead ? (
-            <BookOpen className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-          ) : (
-            <Pencil className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
-          )}
+          <FunctionIcon func={selectedFunction} className="h-5 w-5 mr-2" />
           {selectedFunction.name}
-          <span className={`ml-3 text-xs px-2 py-0.5 rounded-full ${
-            isRead 
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300' 
-              : 'bg-amber-100 text-amber-700 dark:bg-amber-800 dark:text-amber-300'
-          }`}>
-            {isRead ? 'Read' : 'Write'}
-          </span>
+          <FunctionTypeBadge func={selectedFunction} className="text-xs px-2 py-0.5 rounded-full ml-3" />
         </CardTitle>
         <CardDescription>
           {selectedFunction.humanReadableSignature || `${selectedFunction.name}(${selectedFunction.inputs.map(i => `${i.type} ${i.name}`).join(', ')})`}
@@ -138,11 +88,11 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
             </div>
           )}
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className={`w-full ${
-              isRead 
-                ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800' 
+              isRead
+                ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800'
                 : 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-800'
             }`}
             disabled={isLoading}
@@ -154,26 +104,17 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
               </>
             ) : (
               <>
-                {isRead ? (
-                  <>
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Call Function
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Execute Transaction
-                  </>
-                )}
+                <FunctionIcon func={selectedFunction} className="mr-2 h-4 w-4" />
+                {isRead ? 'Call Function' : 'Execute Transaction'}
               </>
             )}
           </Button>
-          
+
           {hasWriteFunctionSuggestion && (
             <div className="mt-3 text-center">
-              <Button 
+              <Button
                 onClick={onRetryAsWriteFunction}
-                size="sm" 
+                size="sm"
                 className="bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-800"
               >
                 Retry as Write Function
@@ -181,12 +122,12 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
             </div>
           )}
         </form>
-          
+
         {result !== null && (
           <div className="mt-6 border rounded-md overflow-hidden">
             <div className={`px-4 py-2 border-b ${
               isRead
-                ? 'bg-blue-50 dark:bg-blue-900/20' 
+                ? 'bg-blue-50 dark:bg-blue-900/20'
                 : 'bg-amber-50 dark:bg-amber-900/20'
             }`}>
               <div className="flex items-center">
@@ -205,8 +146,8 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
                 </span>
               </div>
             </div>
-            
-            <ContractTransactionDetails 
+
+            <ContractTransactionDetails
               result={result}
               functionName={selectedFunction.name}
               isReadFunction={isRead}
@@ -218,4 +159,4 @@ const FunctionForm: React.FC<FunctionFormProps> = ({
   );
 };
 
-export default FunctionForm; 
+export default FunctionForm;

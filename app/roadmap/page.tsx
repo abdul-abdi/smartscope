@@ -40,7 +40,7 @@ const roadmapItems = [
         ]
       },
       {
-        title: 'SmartScope AI Assistant',
+        title: 'Karibu AI Assistant',
         description: 'AI-powered chat assistant for blockchain and smart contract questions',
         icon: Bot,
         details: [
@@ -58,7 +58,8 @@ const roadmapItems = [
           'Contract-type agnostic interface',
           'Automatic function discovery',
           'Live contract state visualization',
-          'Improved React component architecture'
+          'Improved React component architecture',
+          'Multi-format address support (Hedera, EVM, Numeric)'
         ]
       },
       {
@@ -69,7 +70,8 @@ const roadmapItems = [
           'Bytecode-based function detection',
           'Accurate function signature matching',
           'Support for any contract type',
-          'Reliable state variable reading'
+          'Reliable state variable reading',
+          'Custom ABI management with upload/edit capabilities'
         ]
       },
       {
@@ -127,7 +129,55 @@ const roadmapItems = [
           'Detailed template descriptions and use cases',
           'Technical specifications for each template',
           'One-click template integration with IDE',
-          'Seamless workflow between browsing and development'
+          'Seamless workflow between browsing and development',
+          'Difficulty indicators and feature tags'
+        ]
+      },
+      {
+        title: 'Contract Verification',
+        description: 'Verify and validate smart contracts on the network',
+        icon: CheckCircle2,
+        details: [
+          'Source code verification',
+          'Bytecode matching',
+          'Verification status tracking',
+          'Public verification access'
+        ]
+      },
+      {
+        title: 'Advanced State Visualization',
+        description: 'Comprehensive contract state monitoring and inspection',
+        icon: Database,
+        details: [
+          'Storage slot inspection with decoded values',
+          'Real-time state change tracking',
+          'State comparison before/after transactions',
+          'Historical state value tracking',
+          'State data export capabilities'
+        ]
+      },
+      {
+        title: 'Event Monitoring System',
+        description: 'Track and analyze contract events with advanced filtering',
+        icon: Rocket,
+        details: [
+          'Real-time event listening',
+          'Historical event data with parameter decoding',
+          'Event filtering by type and block range',
+          'Event-driven state updates',
+          'Chronological event timeline'
+        ]
+      },
+      {
+        title: 'Transaction Management',
+        description: 'Comprehensive transaction handling and analysis',
+        icon: Zap,
+        details: [
+          'Transaction history tracking',
+          'Transaction replay capabilities',
+          'Detailed transaction receipts',
+          'Gas usage analytics',
+          'Transaction status monitoring'
         ]
       }
     ]
@@ -356,7 +406,7 @@ export default function RoadmapPage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-indigo-500">
-              SmartScope Roadmap
+              Karibu Roadmap
             </h1>
             <motion.p
               className="text-xl text-foreground/80 mb-2"
@@ -374,7 +424,7 @@ export default function RoadmapPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <p className="text-sm text-muted-foreground">
-                <strong>Current Network Support:</strong> SmartScope currently supports the <span className="text-primary font-medium">Hedera Testnet</span> only. 
+                <strong>Current Network Support:</strong> Karibu currently supports the <span className="text-primary font-medium">Hedera Testnet</span> only. 
                 Our roadmap includes plans for additional networks in 2025.
               </p>
             </motion.div>

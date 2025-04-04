@@ -13,25 +13,26 @@ const Footer = () => {
           <div className="flex items-center gap-2">
             <Image 
               src="/favicon.svg" 
-              alt="SmartScope" 
+              alt="Karibu" 
               width={24}
               height={24}
               className="h-6 w-6" 
             />
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} SmartScope. All rights reserved.
+              © {new Date().getFullYear()} Karibu. All rights reserved.
             </p>
           </div>
           
           <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <Link 
-              href="https://github.com/abdul-abdi/smartscope" 
+            <a
               target="_blank"
-              className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
+              href="https://github.com/abdul-abdi/smartscope"
             >
               <Github className="h-4 w-4" />
-              <span className="text-sm">GitHub</span>
-            </Link>
+              <span>GitHub</span>
+            </a>
           </div>
         </div>
       </div>

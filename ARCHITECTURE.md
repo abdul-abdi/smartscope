@@ -1,15 +1,15 @@
-# SmartScope Architecture
+# Karibu Architecture
 
-This document outlines the high-level architecture of the SmartScope platform, detailing key components, data flows, and design decisions.
+This document outlines the high-level architecture of the Karibu platform, detailing key components, data flows, and design decisions.
 
 ## System Overview
 
-SmartScope is a Next.js application that provides a comprehensive platform for smart contract development, analysis, deployment, and interaction on the Hedera network.
+Karibu is a Next.js application that provides a comprehensive platform for smart contract development, analysis, deployment, and interaction on the Hedera network.
 
 ### Core Components
 
 ```
-smartscope/
+karibu/
 ├── app/                  # Next.js app directory (App Router)
 │   ├── api/              # API routes for contract interactions
 │   ├── create/           # Contract creation and Multi-File IDE

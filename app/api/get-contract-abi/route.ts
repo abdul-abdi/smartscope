@@ -597,7 +597,7 @@ async function callContractWithSelector(address: string, selector: string): Prom
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'https://smartscope.vercel.app'
+        'Origin': 'https://karibu.vercel.app'
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -686,7 +686,7 @@ async function detectERC20(contractAddress: string): Promise<boolean> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'https://smartscope.vercel.app'
+        'Origin': 'https://karibu.vercel.app'
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -721,7 +721,7 @@ async function detectERC721(contractAddress: string): Promise<boolean> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Origin': 'https://smartscope.vercel.app'
+        'Origin': 'https://karibu.vercel.app'
       },
       body: JSON.stringify({
         jsonrpc: '2.0',

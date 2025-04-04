@@ -1,4 +1,4 @@
-# 🔐 SmartScope Security Policy
+# 🔐 Karibu Security Policy
 
 ## 📋 Supported Versions
 
@@ -9,7 +9,7 @@
 
 ## 🛡️ Reporting a Vulnerability
 
-If you believe you've found a security vulnerability in SmartScope, please contact us immediately.
+If you believe you've found a security vulnerability in Karibu, please contact us immediately.
 
 **DO NOT disclose the vulnerability publicly.**
 
@@ -42,7 +42,7 @@ We are committed to keeping you informed throughout this process with regular up
 
 ---
 
-## 🔒 Security Best Practices for SmartScope Users
+## 🔒 Security Best Practices for Karibu Users
 
 ### 🔑 API Key Security
 
@@ -52,7 +52,7 @@ We are committed to keeping you informed throughout this process with regular up
 
 ### 📝 Smart Contract Development
 
-- Always review the security analysis provided by SmartScope before deployment
+- Always review the security analysis provided by Karibu before deployment
 - Test contracts thoroughly on testnet before considering mainnet deployment
 - Follow standard smart contract security best practices:
   - ✓ Check for reentrancy vulnerabilities
@@ -68,9 +68,9 @@ We are committed to keeping you informed throughout this process with regular up
 
 ---
 
-## 🛠️ SmartScope Security Features
+## 🛠️ Karibu Security Features
 
-SmartScope includes several built-in security features to protect users:
+Karibu includes several built-in security features to protect users:
 
 | Feature | Description |
 |---------|-------------|

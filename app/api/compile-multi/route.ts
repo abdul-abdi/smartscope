@@ -158,7 +158,7 @@ async function fetchExternalLibrary(importPath: string): Promise<string> {
             signal: controller.signal as any,
             headers: {
               'Accept': 'text/plain',
-              'User-Agent': 'SmartScope-IDE/1.0'
+              'User-Agent': 'Karibu-IDE/1.0'
             }
           });
           

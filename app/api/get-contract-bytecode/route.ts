@@ -354,7 +354,7 @@ async function lookupFunctionSignature(selector: string): Promise<{
     console.log(`Calling 4byte.directory API for ${selector}, call count: ${apiCallTracker.callsInWindow}/${apiCallTracker.maxCallsPerWindow}`);
     const response = await fetch(apiUrl, {
       headers: {
-        'User-Agent': 'SmartScope-ContractAnalyzer'
+        'User-Agent': 'Karibu-ContractAnalyzer'
       }
     });
     
@@ -642,7 +642,7 @@ async function testCommonFunctions(contractAddress: string): Promise<Record<stri
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Origin': 'https://smartscope.app'
+          'Origin': 'https://karibu.app'
         },
         body: JSON.stringify({
           jsonrpc: '2.0',

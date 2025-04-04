@@ -135,14 +135,14 @@ export default function Header() {
               <div className="relative flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden">
                 <Image 
                   src="/favicon.svg" 
-                  alt="SmartScope Logo" 
+                  alt="Karibu Logo" 
                   width={36} 
                   height={36}
                   className="w-full h-full" 
                 />
               </div>
               <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
-                SmartScope
+                Karibu
               </span>
             </Link>
           </motion.div>
@@ -190,17 +190,15 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <ThemeSwitcher />
             
-            <motion.a
+            <a
               href="https://github.com/abdul-abdi/smartscope"
               target="_blank"
-              rel="noopener noreferrer"
-              className="text-foreground/80 hover:text-primary"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.9 }}
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
             >
-              <Github className="w-5 h-5" />
-              <span className="sr-only">GitHub</span>
-            </motion.a>
+              <Github className="h-4 w-4" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
             
             <motion.button
               type="button"

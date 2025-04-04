@@ -123,7 +123,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.4 }}
             >
               A comprehensive platform for blockchain developers to build, analyze, deploy, and interact with 
-              smart contracts on Hedera. From security analysis to one-click deployment, SmartScope eliminates 
+              smart contracts on Hedera. From security analysis to one-click deployment, Karibu eliminates 
               complexity—no wallet setup, no gas fees, just pure development focus.
             </motion.p>
             
@@ -146,15 +146,28 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              <Button asChild size="lg" className="group">
-                <Link href="/create">
-                  Get Started 
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button 
+                asChild 
+                size="lg" 
+                className="group w-full sm:w-auto touch-manipulation"
+              >
+                <Link href="/create" className="w-full">
+                  <span className="flex items-center justify-center">
+                    Get Started 
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/learn">
-                  Learn More <FileText className="ml-2 h-4 w-4" />
+              <Button 
+                asChild 
+                variant="outline" 
+                size="lg"
+                className="w-full sm:w-auto touch-manipulation"
+              >
+                <Link href="/learn" className="w-full">
+                  <span className="flex items-center justify-center">
+                    Learn More <FileText className="ml-2 h-4 w-4" />
+                  </span>
                 </Link>
               </Button>
             </motion.div>
@@ -260,7 +273,7 @@ export default function Home() {
             >
               <div className="h-1.5 w-16 bg-gradient-to-r from-primary to-purple-500 rounded-full" />
             </motion.div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why SmartScope?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Karibu?</h2>
             <p className="text-lg text-foreground/70 max-w-3xl mx-auto">
               A comprehensive toolkit designed to make smart contract development accessible and intuitive
             </p>
@@ -376,7 +389,7 @@ export default function Home() {
             >
               <div className="h-1.5 w-16 bg-gradient-to-r from-primary to-purple-500 rounded-full" />
             </motion.div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How SmartScope Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How Karibu Works</h2>
             <p className="text-lg text-foreground/70 max-w-3xl mx-auto">
               From code to deployment to interaction - explore our seamless end-to-end workflow
             </p>
@@ -495,7 +508,7 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
                   <h3 className="text-2xl font-semibold mb-3 text-purple-500">2. Compile & Analyze</h3>
                   <p className="text-foreground/70 mb-4">
-                    SmartScope automatically compiles your contract and performs a comprehensive security analysis. Our analyzer identifies potential vulnerabilities, optimization opportunities, and provides insights into gas usage and contract structure.
+                    Karibu automatically compiles your contract and performs a comprehensive security analysis. Our analyzer identifies potential vulnerabilities, optimization opportunities, and provides insights into gas usage and contract structure.
                   </p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span className="px-2 py-1 rounded-full bg-purple-500/10 text-purple-500">Security Checks</span>
@@ -614,7 +627,7 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
                   <h3 className="text-2xl font-semibold mb-3 text-indigo-500">3. Deploy to Hedera</h3>
                   <p className="text-foreground/70 mb-4">
-                    With a single click, deploy your contract to the Hedera Testnet. No wallet configuration or HBAR required – SmartScope handles all the deployment complexity behind the scenes. You can provide constructor arguments and customize gas settings.
+                    With a single click, deploy your contract to the Hedera Testnet. No wallet configuration or HBAR required – Karibu handles all the deployment complexity behind the scenes. You can provide constructor arguments and customize gas settings.
                   </p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span className="px-2 py-1 rounded-full bg-indigo-500/10 text-indigo-500">One-Click Deploy</span>
@@ -1073,23 +1086,29 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                  <Link href="/create">
-                    Start Creating Now
-                    <motion.div
-                      className="ml-2"
-                      animate={{
-                        x: [0, 4, 0],
-                      }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        repeatDelay: 1,
-                      }}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </motion.div>
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 w-full sm:w-auto touch-manipulation"
+                >
+                  <Link href="/create" className="w-full">
+                    <span className="flex items-center justify-center">
+                      Start Creating Now
+                      <motion.div
+                        className="ml-2"
+                        animate={{
+                          x: [0, 4, 0],
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          repeatDelay: 1,
+                        }}
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </motion.div>
+                    </span>
                   </Link>
                 </Button>
               </motion.div>

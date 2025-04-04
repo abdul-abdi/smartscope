@@ -1,6 +1,6 @@
-# SmartScope Deployment Guide for Vercel
+# Karibu Deployment Guide for Vercel
 
-This guide will help you deploy the SmartScope application to Vercel's production environment.
+This guide will help you deploy the Karibu application to Vercel's production environment.
 
 ## Prerequisites
 

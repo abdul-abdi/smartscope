@@ -1,5 +1,7 @@
 # SmartScope
 
+## A Smart Contract Analyzer for Hedera Testnet
+
 <div align="center">
   <img src="public/favicon.svg" alt="SmartScope Logo" width="150" height="auto" />
   <p><strong>Smart Contract Analyzer for Hedera Testnet</strong></p>
@@ -149,7 +151,7 @@ SmartScope provides an end-to-end workflow for smart contract development:
 2. Ask questions about blockchain concepts, Solidity, or how to use SmartScope
 3. Get instant, contextual help while you develop
 
-## 📚 Documentation
+## 📄 Documentation
 
 Comprehensive documentation is available in the following files:
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * SmartScope Vercel Deployment Helper
- * 
- * This script helps prepare the application for deployment to Vercel by:
- * 1. Checking required environment variables
- * 2. Creating a sample .env.production file with placeholders
- * 3. Validating the build process for common errors
+ * ================================================================
+ * Karibu Vercel Deployment Helper
+ * ================================================================
+ * A script to prepare the environment for Vercel deployment
+ * This helps identify missing environment variables and updates
+ * the .env file if needed.
  */
 
 const fs = require('fs');
@@ -39,7 +39,7 @@ const OPTIONAL_ENV_VARS = [
   'GEMINI_API_KEY'
 ];
 
-console.log(`${colors.bright}${colors.blue}SmartScope - Vercel Deployment Helper${colors.reset}\n`);
+console.log(`${colors.bright}${colors.blue}Karibu - Vercel Deployment Helper${colors.reset}\n`);
 
 // Check if .env files exist
 console.log(`${colors.bright}Checking environment files...${colors.reset}`);
@@ -56,7 +56,7 @@ if (existingEnvFiles.length > 0) {
 if (!fs.existsSync('.env.production')) {
   console.log(`${colors.bright}Creating sample .env.production file...${colors.reset}`);
   
-  const envSample = `# SmartScope Production Environment Variables
+  const envSample = `# Karibu Production Environment Variables
 # Replace these placeholders with your actual values in Vercel
 
 # Required Hedera account information
@@ -156,7 +156,7 @@ try {
   process.exit(1);
 }
 
-console.log(`\n${colors.bright}${colors.green}✓ SmartScope is ready for Vercel deployment!${colors.reset}`);
+console.log(`\n${colors.bright}${colors.green}✓ Karibu is ready for Vercel deployment!${colors.reset}`);
 console.log(`\n${colors.bright}Deployment steps:${colors.reset}`);
 console.log(`1. Install Vercel CLI: ${colors.blue}npm i -g vercel${colors.reset}`);
 console.log(`2. Deploy to Vercel: ${colors.blue}vercel${colors.reset}`);

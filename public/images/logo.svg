@@ -46,8 +46,8 @@
   <circle cx="100" cy="100" r="12" class="primary-color" />
   <circle cx="100" cy="100" r="8" fill="#ffffff" opacity="0.3" />
   
-  <!-- Text "SmartScope" below the logo -->
-  <text x="100" y="180" font-family="'Arial', sans-serif" font-size="20" font-weight="700" text-anchor="middle" class="text-color">SmartScope</text>
+  <!-- Text "Karibu" below the logo -->
+  <text x="100" y="180" font-family="'Arial', sans-serif" font-size="20" font-weight="700" text-anchor="middle" class="text-color">Karibu</text>
   
   <!-- Gradient definition -->
   <defs>

@@ -7,7 +7,7 @@ const nextConfig = {
   },
   // Handle environment variables
   env: {
-    APP_NAME: 'SmartScope',
+    APP_NAME: 'Karibu',
     APP_VERSION: '1.0.0',
   },
 };

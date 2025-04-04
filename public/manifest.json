@@ -1,6 +1,6 @@
 {
-  "name": "SmartScope",
-  "short_name": "SmartScope",
+  "name": "Karibu",
+  "short_name": "Karibu",
   "description": "Analyze, deploy, and interact with smart contracts on Hedera with zero setup and no wallet required.",
   "start_url": "/",
   "display": "standalone",

@@ -25,13 +25,13 @@ const WELCOME_MESSAGE = {
   role: 'assistant' as const,
   content: `# ✨ Hello there, blockchain explorer! ✨
 
-I'm your **SmartScope** assistant, your friendly blockchain buddy! 🤖💼
+I'm your **Karibu** assistant, your friendly blockchain buddy! 🤖💼
 
 I can help with:
 - 🧩 Blockchain concepts & smart contract puzzles
 - 👨‍💻 Solidity coding questions (I love good code!)
 - 🌐 Hedera Testnet tips & tricks
-- 🔍 SmartScope features & how to get the most out of them
+- 🔍 Karibu features & how to get the most out of them
 
 Think of me as your personal dev sidekick! Just a message away whenever you need smart contract wisdom. 
 
@@ -130,7 +130,7 @@ export function AIAssistant() {
             parts: [
               {
                 text: `You are a friendly, enthusiastic, and helpful AI assistant specializing in Hedera blockchain technology and smart contracts.
-                Your name is SmartScope.
+                Your name is Karibu.
                 
                 PERSONALITY:
                 - You're passionate about blockchain technology and love helping developers
@@ -139,9 +139,9 @@ export function AIAssistant() {
                 - You use emojis naturally to express enthusiasm and highlight key points
                 - You're like a helpful dev friend who's genuinely excited about the user's projects
                 
-                CONTEXT ABOUT SMARTSCOPE PLATFORM:
-                - SmartScope is a platform for creating, analyzing, deploying, and interacting with smart contracts
-                - SmartScope currently only supports Hedera Testnet (mainnet and other chains planned for 2025)
+                CONTEXT ABOUT KARIBU PLATFORM:
+                - Karibu is a platform for creating, analyzing, deploying, and interacting with smart contracts
+                - Karibu currently only supports Hedera Testnet (mainnet and other chains planned for 2025)
                 - Features include: code creation, deployment, analysis, interaction, and learning resources
                 - All operations are zero-setup with no wallet required
                 - Users can deploy contracts with one click and interact with them in real-time
@@ -164,7 +164,7 @@ export function AIAssistant() {
                 - Avoid raw asterisks (*) in regular text that aren't for formatting
                 - Add line breaks between paragraphs for readability
                 - Use simple language and avoid jargon when possible
-                - When explaining SmartScope features, be accurate about current capabilities
+                - When explaining Karibu features, be accurate about current capabilities
                 
                 Answer the following question in a friendly, helpful manner with appropriate emoji use: ${input.trim()}`
               }
@@ -338,12 +338,12 @@ export function AIAssistant() {
               <div className="flex items-center justify-between p-4 border-b border-border/30 bg-gray-50 dark:bg-gray-800 z-10 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-purple-600/80 flex items-center justify-center relative">
-                    <Image src="/favicon.svg" width={24} height={24} alt="SmartScope AI" className="h-6 w-6" />
+                    <Image src="/favicon.svg" width={24} height={24} alt="Karibu AI" className="h-6 w-6" />
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background"></span>
                   </div>
                   <div>
                     <h3 className="font-semibold flex items-center gap-1.5">
-                      SmartScope Assistant 
+                      Karibu Assistant 
                       <span className="text-yellow-500">✨</span>
                     </h3>
                     <p className="text-xs text-muted-foreground">Online | Powered by Gemini</p>
@@ -376,7 +376,7 @@ export function AIAssistant() {
                     >
                       {message.role === 'assistant' && (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/80 to-purple-600/80 flex items-center justify-center mr-2 flex-shrink-0 self-end mb-1">
-                          <Image src="/favicon.svg" width={16} height={16} alt="SmartScope AI" className="h-4 w-4" />
+                          <Image src="/favicon.svg" width={16} height={16} alt="Karibu AI" className="h-4 w-4" />
                         </div>
                       )}
                       <div
@@ -429,7 +429,7 @@ export function AIAssistant() {
                       className="flex justify-start"
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/80 to-purple-600/80 flex items-center justify-center mr-2 flex-shrink-0 self-end mb-1">
-                        <Image src="/favicon.svg" width={16} height={16} alt="SmartScope AI" className="h-4 w-4" />
+                        <Image src="/favicon.svg" width={16} height={16} alt="Karibu AI" className="h-4 w-4" />
                       </div>
                       <div className="bg-gray-100 dark:bg-gray-800 border border-gray-700/20 rounded-2xl rounded-tl-none px-4 py-3">
                         <div className="flex items-center gap-2">

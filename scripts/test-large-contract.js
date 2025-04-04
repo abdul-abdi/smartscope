@@ -12,7 +12,7 @@ const directDeployUrl = 'http://localhost:3000/api/direct-deploy';
  */
 async function testLargeContractDeployment() {
   try {
-    console.log('🧪 Testing SmartScope Contract Deployment');
+    console.log('🧪 Testing Karibu Contract Deployment');
     console.log('==========================================');
     
     // First test with a regular-sized contract

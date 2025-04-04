@@ -7,8 +7,9 @@ import {
   DialogDescription
 } from '../../../../components/ui/dialog';
 import { Button } from '../../../../components/ui/button';
-import { Copy, Check, Download } from 'lucide-react';
+import { Copy, Check, Download, Shield, FileCode, Info } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import { Badge } from '../../../../components/ui/badge';
 import { ContractFunction } from '../../../types/contract';
 
 interface AbiModalProps {
@@ -16,6 +17,8 @@ interface AbiModalProps {
   onClose: () => void;
   abi: ContractFunction[];
   contractAddress: string;
+  abiSource?: string;
+  isVerified?: boolean;
 }
 
 interface FunctionsByType {
@@ -26,7 +29,14 @@ interface FunctionsByType {
   other: ContractFunction[];
 }
 
-const AbiModal: React.FC<AbiModalProps> = ({ isOpen, onClose, abi, contractAddress }) => {
+const AbiModal: React.FC<AbiModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  abi, 
+  contractAddress,
+  abiSource,
+  isVerified = false
+}) => {
   const [copied, setCopied] = useState(false);
   
   const handleCopy = () => {
@@ -113,9 +123,51 @@ const AbiModal: React.FC<AbiModalProps> = ({ isOpen, onClose, abi, contractAddre
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-muted-foreground">
-            {abi.length} ABI items: {functionsByType.read.length} read functions, {functionsByType.write.length} write functions, {functionsByType.events.length} events
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="text-sm text-muted-foreground">
+              {abi.length} ABI items: {functionsByType.read.length} read functions, {functionsByType.write.length} write functions, {functionsByType.events.length} events
+            </div>
+            
+            {isVerified && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
+              >
+                <Shield className="h-3 w-3" />
+                ABI Verified
+              </Badge>
+            )}
+            
+            {abiSource === 'bytecode' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
+              >
+                <FileCode className="h-3 w-3" />
+                Bytecode Analysis
+              </Badge>
+            )}
+            
+            {abiSource === 'manual-bytecode' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
+              >
+                <FileCode className="h-3 w-3" />
+                Manual Bytecode
+              </Badge>
+            )}
+            
+            {abiSource === 'transaction' && (
+              <Badge 
+                variant="outline" 
+                className="flex items-center gap-1 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400"
+              >
+                <Info className="h-3 w-3" />
+                Transaction History
+              </Badge>
+            )}
           </div>
           <div className="flex space-x-2">
             <Button 
