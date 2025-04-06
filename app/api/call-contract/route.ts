@@ -37,7 +37,17 @@ dotenv.config();
 const HASHIO_API_ENDPOINT = 'https://testnet.hashio.io/api';
 
 export async function POST(request: Request) {
+  let requestId = ''; // Initialize requestId
   try {
+    // Extract request ID early if possible, or generate one
+    // (Assuming headers might contain an ID, otherwise use a timestamp/random string)
+    // For simplicity, let's use a basic log marker for now
+    const rawBody = await request.json();
+    requestId = rawBody.requestId || `req_${Date.now()}`; // Use provided requestId or generate one
+    const logPrefix = `[${requestId}] `;
+
+    console.log(`${logPrefix}Received raw request body:`, JSON.stringify(rawBody)); // Log raw body immediately
+
     const {
       contractAddress,
       functionName,
@@ -45,13 +55,14 @@ export async function POST(request: Request) {
       isQuery,
       abi,
       returnResult = false,
-      requestId,
       includeInputAnalysis = true,
       includeCallTrace = true
-    } = await request.json();
+    } = rawBody; // Destructure from the already parsed body
 
     // Use a consistent prefix for all logs from this endpoint
-    const logPrefix = requestId ? `[${requestId}] ` : '';
+    // const logPrefix = requestId ? `[${requestId}] ` : ''; // logPrefix is already defined above
+
+    console.log(`${logPrefix}Call request details - Contract: ${contractAddress}, Function: ${functionName}, isQuery: ${isQuery}`); // Log key details
 
     if (!contractAddress) {
       return NextResponse.json({ error: 'Contract address is required' }, { status: 400 });
@@ -117,6 +128,7 @@ export async function POST(request: Request) {
         const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
         const host = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'localhost:3000';
         const baseUrl = `${protocol}://${host}`;
+        console.log(`${logPrefix}Constructed internal API baseUrl: ${baseUrl}`); // Log the constructed baseUrl
 
         // Verify the function exists in the contract
         if (abi && Array.isArray(abi)) {
@@ -547,9 +559,12 @@ export async function POST(request: Request) {
       }
     }
   } catch (error: any) {
-    console.error('Unhandled error in call-contract API:', error);
-    return NextResponse.json({
-      error: `API error: ${error.message}`
+    const logPrefix = `[${requestId || 'unknown_req'}] `; // Ensure logPrefix is available in catch
+    console.error(`${logPrefix}Unhandled error in /api/call-contract:`, error);
+    // Ensure a consistent error response format
+    return NextResponse.json({ 
+      error: 'An unexpected server error occurred.', 
+      details: error.message || 'Unknown error' 
     }, { status: 500 });
   }
 }
