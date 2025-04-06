@@ -286,12 +286,6 @@ export async function POST(request: Request) {
         item.name === functionName &&
         item.type === 'function'
       );
-
-      if (!functionAbi) {
-        console.warn(`${logPrefix}Function '${functionName}' not found in the provided ABI`);
-      } else {
-        console.log(`${logPrefix}Validated function '${functionName}' exists in ABI`);
-      }
     }
 
     // For direct calls without ABI, try both modes if we get an error
