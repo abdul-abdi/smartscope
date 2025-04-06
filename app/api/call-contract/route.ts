@@ -265,15 +265,17 @@ export async function POST(request: Request) {
     }
 
     // Now that we know if it's a read function, check if we should block the call for non-existent functions
-    if (!functionExists && isReadFunction) {
-      // If this is a read function and we're confident it doesn't exist, return an error
-      // This helps prevent unnecessary errors in the UI for non-existent functions
-      return NextResponse.json({
-        error: `Function '${functionName}' does not appear to exist in this contract. It may have been extracted from source code or ABI but is not implemented in the bytecode.`,
-        errorType: 'FUNCTION_NOT_FOUND',
-        suggestion: 'Try a different function or verify the contract implements this functionality.'
-      }, { status: 400 });
-    }
+    // --- Start of Block to Comment Out ---
+    // if (!functionExists && isReadFunction) {
+    //   // If this is a read function and we're confident it doesn't exist, return an error
+    //   // This helps prevent unnecessary errors in the UI for non-existent functions
+    //   return NextResponse.json({
+    //     error: `Function '${functionName}' does not appear to exist in this contract. It may have been extracted from source code or ABI but is not implemented in the bytecode.`,
+    //     errorType: 'FUNCTION_NOT_FOUND',
+    //     suggestion: 'Try a different function or verify the contract implements this functionality.'
+    //   }, { status: 400 });
+    // }
+    // --- End of Block to Comment Out ---
 
     console.log(`${logPrefix}Call request: ${functionName} at ${contractAddress}, isQuery: ${isReadFunction}, params:`, parameters);
 
